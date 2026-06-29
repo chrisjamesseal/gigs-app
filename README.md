@@ -182,4 +182,5 @@ is by design. To re-capture their request shapes, see
 4. **Web app** — mobile list, live Refresh, static GitHub Pages deploy. ← *done*
 5. **Skiddle** — third API source. ← *done*
 6. **RA + Dice scrapers** — isolated, with kill switches. ← *done*
-7. **Polish** — observability, low-confidence match log, optional email digest.
+7. **Email digest (final)** — a short weekly nudge that **links to the web app**
+   for the full list; built last, once the web app is done.
