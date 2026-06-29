@@ -16,5 +16,8 @@ venv/
 *.db-shm
 gig_radar.db
 
+# Static site build output (published by GitHub Actions, not committed)
+docs/
+
 # OS
 .DS_Store

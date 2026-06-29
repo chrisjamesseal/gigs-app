@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -57,6 +57,14 @@ CREATE TABLE IF NOT EXISTS low_confidence_matches (
     score         REAL,
     source        TEXT,
     logged_at     TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runs (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    ran_at         TEXT NOT NULL,
+    events_found   INTEGER NOT NULL,
+    matched        INTEGER NOT NULL,
+    failed_sources TEXT NOT NULL DEFAULT '[]'
 );
 """
 
@@ -157,6 +165,87 @@ def upsert_event(conn: sqlite3.Connection, event: Event, dedup_key: str) -> None
             dedup_key,
         ),
     )
+
+
+def clear_events(conn: sqlite3.Connection) -> None:
+    """Remove all stored events. Called before re-inserting a fresh deduped set."""
+    conn.execute("DELETE FROM events")
+
+
+def get_upcoming_events(
+    conn: sqlite3.Connection, lookahead_days: int, now: datetime | None = None
+) -> list[Event]:
+    """Return stored events from now through ``lookahead_days``, soonest first."""
+    now = now or datetime.now().astimezone()
+    horizon = now + timedelta(days=lookahead_days)
+    cur = conn.execute(
+        """
+        SELECT source, source_event_id, artist_name, matched_artist, venue, city,
+               date, url, price_from, fetched_at, links
+        FROM events
+        WHERE date >= ? AND date <= ?
+        ORDER BY date ASC
+        """,
+        (now.isoformat(), horizon.isoformat()),
+    )
+    events: list[Event] = []
+    for row in cur.fetchall():
+        events.append(
+            Event(
+                source=row["source"],
+                source_event_id=row["source_event_id"],
+                artist_name=row["artist_name"],
+                matched_artist=row["matched_artist"],
+                venue=row["venue"],
+                city=row["city"],
+                date=datetime.fromisoformat(row["date"]),
+                url=row["url"],
+                price_from=row["price_from"],
+                fetched_at=datetime.fromisoformat(row["fetched_at"])
+                if row["fetched_at"]
+                else None,
+                links=json.loads(row["links"] or "{}"),
+            )
+        )
+    return events
+
+
+def record_run(
+    conn: sqlite3.Connection,
+    *,
+    events_found: int,
+    matched: int,
+    failed_sources: list[str],
+) -> None:
+    """Log a pipeline run so the UI can show 'last refreshed' + coverage."""
+    conn.execute(
+        """
+        INSERT INTO runs (ran_at, events_found, matched, failed_sources)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            datetime.now().astimezone().isoformat(),
+            events_found,
+            matched,
+            json.dumps(failed_sources),
+        ),
+    )
+
+
+def get_last_run(conn: sqlite3.Connection) -> dict | None:
+    """Return the most recent run summary, or None if the pipeline never ran."""
+    row = conn.execute(
+        "SELECT ran_at, events_found, matched, failed_sources "
+        "FROM runs ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "ran_at": row["ran_at"],
+        "events_found": row["events_found"],
+        "matched": row["matched"],
+        "failed_sources": json.loads(row["failed_sources"] or "[]"),
+    }
 
 
 def log_low_confidence(

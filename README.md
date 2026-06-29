@@ -1,11 +1,25 @@
 # London Gig Radar
 
-A zero-touch weekly email: *"Here are gigs in London by artists you care about in
-the next 90 days."* It pulls your followed and liked-song artists from Spotify,
-queries multiple gig sources, and emails a digest. Designed to run for free on a
-GitHub Actions cron.
+A personal **web app** listing every upcoming London gig by artists you follow or
+have liked songs from on Spotify. A scheduled job pulls your Spotify artists,
+queries multiple gig sources, matches and dedups the results, and publishes a
+mobile-friendly page to **GitHub Pages** — refreshed automatically.
 
-Single-user personal tool — no web UI, no ticket buying, no multi-user support.
+Single-user personal tool — no ticket buying, no multi-user support. (The web app
+replaced the originally-planned email digest; the email code remains in the repo
+for a later milestone.)
+
+## How it runs
+
+- **Live (local):** `python -m src.web` serves the list with a working **Refresh**
+  button — open it from your phone over home WiFi.
+- **Published (GitHub Pages):** a daily GitHub Actions job rebuilds a static
+  `index.html` from fresh data and deploys it, so you can browse from anywhere at
+  `https://<your-username>.github.io/<repo>/`.
+
+> **Privacy note:** a GitHub Pages site is public, so your published gig list (and
+> `events.json`) is publicly viewable. It exposes gigs/artists, not your account.
+> Keep it in mind; all API keys stay in repo secrets and are never published.
 
 ## Status
 
@@ -14,15 +28,20 @@ This repo is built milestone-by-milestone (see [Roadmap](#roadmap)).
 **✅ Milestone 1 — Skeleton:** project layout, config loader, SQLite schema, and a
 one-time Spotify login that mints a refresh token.
 
-**✅ Milestone 2 — Two easy sources (current):** Ticketmaster (Discovery API) and
-Bandsintown wired up, with artist matching (exact + fuzzy). Running the entrypoint
-now fetches your artists, queries both sources for London events, matches them
-back to your artists, and prints the gigs to the console. Bandsintown results are
-filtered to London by city name or within 30km of the centre.
+**✅ Milestone 2 — Two easy sources:** Ticketmaster (Discovery API) and Bandsintown,
+with artist matching (exact + fuzzy). Bandsintown results are filtered to London by
+city name or within 30km of the centre.
 
-Skiddle, the RA/Dice scrapers, dedup+storage, the email digest, and the cron
-deploy arrive in later milestones; their modules exist as stubs so the structure
-is stable.
+**✅ Milestone 3 — Matcher + dedup + storage:** events are matched, deduped across
+sources on `(artist, date, venue)` (merging each source's ticket link), and stored
+in SQLite.
+
+**✅ Web app (current):** a mobile-friendly list of upcoming gigs, served live with
+a Refresh button (`python -m src.web`) and published as a static site to GitHub
+Pages via CI. This is the new primary deliverable.
+
+Skiddle, the RA/Dice scrapers, and the email digest arrive in later milestones;
+their modules exist as stubs so the structure is stable.
 
 ## Quick start
 
@@ -41,8 +60,9 @@ cp .env.example .env
 python scripts/spotify_login.py
 # Paste the printed SPOTIFY_REFRESH_TOKEN into .env.
 
-# 4. Run the pipeline. Milestone 1 prints your followed + liked artists.
-python -m src.main
+# 4. Fetch gigs into the database, then browse them in the web app.
+python -m src.main            # populate the SQLite DB
+python -m src.web             # open http://localhost:8000
 ```
 
 ### Spotify app setup
@@ -59,27 +79,63 @@ as a GitHub Actions secret. You never repeat the login unless you revoke access.
 
 ## Usage
 
+### Web app (local)
+
 ```bash
-python -m src.main                      # refresh artists from Spotify, then run
-python -m src.main --no-refresh-artists # use the cached artist list in SQLite
-python -m src.main --dry-run            # never send email (log it instead)
+python -m src.web                 # serve at http://0.0.0.0:8000
+# Open http://<your-computer-ip>:8000 on your phone (same WiFi).
+# Hit "Refresh" to pull the latest gigs (needs Spotify + source keys).
 ```
+
+### Headless pipeline (populate the database / cron)
+
+```bash
+python -m src.main                      # refresh artists + sources, store, print
+python -m src.main --no-refresh-artists # reuse the cached Spotify artist list
+```
+
+### Build the static site
+
+```bash
+python scripts/build_site.py --refresh  # refresh data, write docs/index.html + events.json
+python scripts/build_site.py            # rebuild from the existing DB only
+```
+
+## Deploying to GitHub Pages
+
+Same hosting model as the map app — a static site built and pushed by CI:
+
+1. In the repo, **Settings → Pages → Build and deployment → Source: GitHub
+   Actions**.
+2. Add your keys under **Settings → Secrets and variables → Actions**:
+   `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`,
+   `TICKETMASTER_API_KEY`, `BANDSINTOWN_APP_ID`, `SKIDDLE_API_KEY`.
+3. The [`pages.yml`](.github/workflows/pages.yml) workflow runs daily (and on
+   demand via **Actions → Build & deploy site → Run workflow**, or on push to
+   `main`). It refreshes the data and deploys `docs/` to Pages.
+
+The published URL is `https://<your-username>.github.io/<repo>/`.
 
 ## Project layout
 
 ```
 src/
-├── main.py            # entrypoint
+├── main.py            # CLI entrypoint (populate the DB / cron)
 ├── config.py          # env/.env config loader
 ├── db.py              # SQLite schema + helpers
 ├── models.py          # Artist / Event dataclasses
-├── matcher.py         # name normalization (+ fuzzy matching, later)
+├── matcher.py         # name normalization + fuzzy matching
 ├── spotify_client.py  # Spotify OAuth + artist fetch
-├── aggregator.py      # fan out artists across sources
-├── emailer.py         # digest rendering/sending (milestone 5)
-└── sources/           # one isolated module per gig source
+├── aggregator.py      # fan out across sources + cross-source dedup
+├── pipeline.py        # shared refresh: fetch -> match -> dedup -> store
+├── emailer.py         # digest rendering/sending (later milestone)
+├── sources/           # one isolated module per gig source
+└── web/               # FastAPI app + static-site renderer + templates
 scripts/
-└── spotify_login.py   # one-time refresh-token minting (PKCE)
+├── spotify_login.py   # one-time refresh-token minting (PKCE)
+└── build_site.py      # render the static site for GitHub Pages
+.github/workflows/
+└── pages.yml          # daily build + deploy to GitHub Pages
 tests/
 ```
 
@@ -106,17 +162,16 @@ without warning.** They are built on a strictly best-effort basis:
   logs and returns no events, and the rest of the digest carries on.
 - Each has a kill switch (`RA_ENABLED` / `DICE_ENABLED`) to disable it instantly.
 
-When (not if) they stop working, the weekly email still goes out with the
-remaining sources, plus a footer noting that coverage was partial. Don't be
-surprised — this is by design.
+When (not if) they stop working, the site still updates with the remaining
+sources, plus a banner noting that coverage was partial. Don't be surprised — this
+is by design.
 
 ## Roadmap
 
 1. **Skeleton** — repo layout, config, SQLite schema, Spotify login. ← *done*
 2. **Two easy sources** — Ticketmaster + Bandsintown. ← *done*
-3. **Matcher + dedup + storage** — events in SQLite, dedup tested.
-4. **Skiddle** — third API source.
-5. **Email digest** — dry-run locally, then for real.
+3. **Matcher + dedup + storage** — events in SQLite, dedup tested. ← *done*
+4. **Web app** — mobile list, live Refresh, static GitHub Pages deploy. ← *done*
+5. **Skiddle** — third API source.
 6. **RA + Dice scrapers** — isolated, with kill switches.
-7. **GitHub Actions deploy** — weekly cron, secrets, persisted DB.
-8. **Polish** — observability, low-confidence match log, README.
+7. **Polish** — observability, low-confidence match log, optional email digest.

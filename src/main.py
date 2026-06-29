@@ -1,14 +1,13 @@
-"""Entrypoint for the London Gig Radar pipeline.
+"""CLI entrypoint for the London Gig Radar pipeline.
 
-Run as ``python -m src.main``. Milestone 1 wires up the front of the pipeline:
-initialize the database, pull the user's Spotify artists (followed + liked),
-cache them, and print them. Later milestones extend :func:`run` to query gig
-sources, match, dedup, store, and email.
+Run as ``python -m src.main``. It runs the full refresh — pull Spotify artists,
+query gig sources, match, dedup, and store events in SQLite — then prints the
+stored upcoming gigs. The same pipeline backs the web app (``python -m src.web``);
+this is the headless way to populate the database (e.g. from cron).
 
 Flags:
-    --dry-run   Run the full pipeline but never send email (logs instead).
     --refresh-artists / --no-refresh-artists
-                Force or skip the weekly Spotify artist refresh.
+                Force or skip the Spotify artist refresh (default: on).
 """
 
 from __future__ import annotations
@@ -18,21 +17,16 @@ import sys
 
 import structlog
 
-from . import db, matcher, spotify_client
-from .aggregator import aggregate
 from .config import get_config
 from .logging_config import configure_logging
+from .models import Event
+from .pipeline import load_upcoming, run_pipeline
 
 log = structlog.get_logger(__name__)
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="gig-radar", description=__doc__)
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Run the pipeline but log the email instead of sending it.",
-    )
     parser.add_argument(
         "--refresh-artists",
         dest="refresh_artists",
@@ -43,65 +37,30 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def refresh_artists(config) -> list:
-    """Fetch artists from Spotify and cache them in SQLite. Returns the list."""
-    artists = spotify_client.fetch_artists(config)
-    with db.connect(config.db_path) as conn:
-        written = db.upsert_artists(conn, artists)
-    log.info("artists.cached", count=written)
-    return artists
-
-
 def run(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     configure_logging()
     config = get_config()
 
-    db.init_db(config.db_path)
-    log.info("db.ready", path=config.db_path)
+    result = run_pipeline(config, refresh_artists=args.refresh_artists)
+    log.info("artists.summary", total=result.artists)
 
-    if args.refresh_artists:
-        artists = refresh_artists(config)
-    else:
-        with db.connect(config.db_path) as conn:
-            artists = db.get_artists(conn)
-        log.info("artists.loaded_from_cache", count=len(artists))
-
-    followed = sum(1 for a in artists if a.source == "followed")
-    liked = len(artists) - followed
-    log.info("artists.summary", total=len(artists), followed=followed, liked=liked)
-
-    # Milestone 2: query enabled sources, match events back to the user's artists,
-    # and print the matches to the console.
-    result = aggregate([a.name for a in artists], config)
-    with db.connect(config.db_path) as conn:
-        matched = matcher.match_events(result.events, artists, conn=conn)
-
-    _print_events(matched, result.failed_sources)
-
-    # Milestones 3+ continue from here: dedup -> store -> email.
-    log.info(
-        "run.complete",
-        dry_run=args.dry_run,
-        artists=len(artists),
-        events_found=len(result.events),
-        matched=len(matched),
-        failed_sources=result.failed_sources,
-    )
+    _print_events(load_upcoming(config), result.failed_sources)
     return 0
 
 
-def _print_events(events: list, failed_sources: list[str]) -> None:
-    """Print matched events to the console, grouped by date (milestone 2 output)."""
-    print(f"\nMatched gigs in London ({len(events)}):")
+def _print_events(events: list[Event], failed_sources: list[str]) -> None:
+    """Print stored upcoming events to the console, soonest first."""
+    print(f"\nUpcoming London gigs by your artists ({len(events)}):")
     if not events:
-        print("  (none — no matching upcoming events found)")
-    for event in sorted(events, key=lambda e: e.date):
+        print("  (none yet — add API keys and refresh, or none were found)")
+    for event in events:
         when = event.date.strftime("%a %d %b %Y %H:%M")
         price = f" from £{event.price_from:.0f}" if event.price_from else ""
+        sources = ", ".join(event.links.keys()) or event.source
         print(
             f"  - {when}  {event.artist_name} @ {event.venue}"
-            f"  [{event.source}]{price}"
+            f"  [{sources}]{price}"
         )
         print(f"      {event.url}")
     if failed_sources:
