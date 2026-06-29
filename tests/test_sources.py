@@ -7,7 +7,7 @@ objects, including London filtering and timezone handling.
 import json
 from pathlib import Path
 
-from src.sources import bandsintown, skiddle, ticketmaster
+from src.sources import bandsintown, dice, ra, skiddle, ticketmaster
 from src.sources.util import LONDON_TZ
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -84,3 +84,38 @@ def test_skiddle_parses_varied_price_fields():
 
 def test_skiddle_handles_api_error():
     assert skiddle.parse_events({"error": 3, "errormessage": "bad"}, "Bonobo") == []
+
+
+# --- fragile scrapers: parser tests against the documented expected shape -----
+
+
+def test_ra_parses_listings():
+    events = ra.parse_events(_load("ra_sample.json"))
+    assert len(events) == 2
+    first = events[0]
+    assert first.source == "ra"
+    assert first.artist_name == "Aphex Twin"  # first artist in the lineup
+    assert first.venue == "Fabric"
+    assert first.url == "https://ra.co/events/1111111"  # contentUrl made absolute
+    assert first.date.tzinfo is not None
+
+
+def test_ra_degrades_on_unexpected_shape():
+    # Schema drift must yield [] rather than raising.
+    assert ra.parse_events({"data": {"somethingElse": {}}}) == []
+    assert ra.parse_events({}) == []
+
+
+def test_dice_keeps_only_london():
+    events = dice.parse_events(_load("dice_sample.json"), queried_artist="Floating Points")
+    ids = {e.source_event_id for e in events}
+    assert ids == {"dice-1"}  # Manchester event excluded
+    e = events[0]
+    assert e.artist_name == "Floating Points"
+    assert e.price_from == 22.0  # 2200 pence -> £22
+    assert e.url == "https://dice.fm/event/dice-1"
+
+
+def test_dice_degrades_on_unexpected_shape():
+    assert dice.parse_events({"weird": True}, "Bonobo") == []
+    assert dice.parse_events({}, "Bonobo") == []

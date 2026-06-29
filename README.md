@@ -40,11 +40,15 @@ in SQLite.
 button (`python -m src.web`) and published as a static site to GitHub Pages via CI.
 This is the primary deliverable.
 
-**✅ Milestone 5 — Skiddle (current):** third API source, covering live gigs and
+**✅ Milestone 5 — Skiddle:** third API source, covering live gigs and
 club/electronic nights (geo-constrained to ~15km of central London).
 
-The RA/Dice scrapers and the optional email digest arrive in later milestones;
-their modules exist as stubs so the structure is stable.
+**✅ Milestone 6 — RA + Dice scrapers (current):** isolated, kill-switched,
+defensively-parsed scrapers for Resident Advisor and Dice. These are *best-effort*
+and need a one-time live-query verification — see
+[REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md).
+
+The optional email digest is the only remaining later milestone.
 
 ## Quick start
 
@@ -161,13 +165,14 @@ Resident Advisor and Dice have **no public API.** Those sources are
 reverse-engineered from their web apps, live in a ToS grey area, and **will break
 without warning.** They are built on a strictly best-effort basis:
 
-- Each is an isolated module wrapped in a top-level try/except — if it breaks it
-  logs and returns no events, and the rest of the digest carries on.
+- Each is an isolated module with defensive parsing; on any failure it returns no
+  events (also wrapped by `safe_fetch`), and the rest of the app carries on.
 - Each has a kill switch (`RA_ENABLED` / `DICE_ENABLED`) to disable it instantly.
 
 When (not if) they stop working, the site still updates with the remaining
 sources, plus a banner noting that coverage was partial. Don't be surprised — this
-is by design.
+is by design. To re-capture their request shapes, see
+[REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md).
 
 ## Roadmap
 
@@ -176,5 +181,5 @@ is by design.
 3. **Matcher + dedup + storage** — events in SQLite, dedup tested. ← *done*
 4. **Web app** — mobile list, live Refresh, static GitHub Pages deploy. ← *done*
 5. **Skiddle** — third API source. ← *done*
-6. **RA + Dice scrapers** — isolated, with kill switches.
+6. **RA + Dice scrapers** — isolated, with kill switches. ← *done*
 7. **Polish** — observability, low-confidence match log, optional email digest.

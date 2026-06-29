@@ -1,0 +1,31 @@
+{
+  "data": {
+    "eventListings": {
+      "data": [
+        {
+          "event": {
+            "id": "1111111",
+            "title": "Aphex Twin at Warehouse Project London",
+            "date": "2026-07-18T00:00:00.000",
+            "startTime": "2026-07-18T22:00:00.000",
+            "contentUrl": "/events/1111111",
+            "venue": { "name": "Fabric" },
+            "artists": [{ "name": "Aphex Twin" }, { "name": "Support DJ" }]
+          }
+        },
+        {
+          "event": {
+            "id": "2222222",
+            "title": "Some Other Night",
+            "date": "2026-08-01T00:00:00.000",
+            "startTime": "2026-08-01T23:00:00.000",
+            "contentUrl": "/events/2222222",
+            "venue": { "name": "Corsica Studios" },
+            "artists": [{ "name": "Floating Points" }]
+          }
+        }
+      ],
+      "totalResults": 2
+    }
+  }
+}
