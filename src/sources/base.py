@@ -34,8 +34,13 @@ def safe_fetch(
     fetch: Source,
     artist_names: list[str],
     location: str = "London",
-) -> list[Event]:
-    """Run a source's fetch, catching everything; on failure log and return ``[]``.
+) -> tuple[list[Event], bool]:
+    """Run a source's fetch, catching everything.
+
+    Returns ``(events, ok)`` where ``ok`` is False if the source raised — the
+    caller uses that to flag partial coverage in the digest, without conflating a
+    crash with a source that legitimately found nothing. On failure the events
+    list is empty, honouring the spec's "a failed source returns ``[]``" rule.
 
     Emits one structured log line per source with ``events_found``, ``duration_ms``,
     and any error — the observability contract from the spec.
@@ -49,7 +54,7 @@ def safe_fetch(
             events_found=len(events),
             duration_ms=round((time.monotonic() - start) * 1000),
         )
-        return events
+        return events, True
     except Exception as exc:  # noqa: BLE001 — boundary is deliberately broad
         log.error(
             "source.failed",
@@ -57,4 +62,4 @@ def safe_fetch(
             duration_ms=round((time.monotonic() - start) * 1000),
             errors=str(exc),
         )
-        return []
+        return [], False

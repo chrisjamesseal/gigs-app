@@ -11,12 +11,18 @@ Single-user personal tool — no web UI, no ticket buying, no multi-user support
 
 This repo is built milestone-by-milestone (see [Roadmap](#roadmap)).
 
-**✅ Milestone 1 — Skeleton (current):** project layout, config loader, SQLite
-schema, and a one-time Spotify login that mints a refresh token. Running the
-entrypoint fetches your Spotify artists end-to-end and prints them.
+**✅ Milestone 1 — Skeleton:** project layout, config loader, SQLite schema, and a
+one-time Spotify login that mints a refresh token.
 
-Sources, matching, dedup, the email digest, and the cron deploy arrive in later
-milestones; their modules exist as stubs so the structure is stable.
+**✅ Milestone 2 — Two easy sources (current):** Ticketmaster (Discovery API) and
+Bandsintown wired up, with artist matching (exact + fuzzy). Running the entrypoint
+now fetches your artists, queries both sources for London events, matches them
+back to your artists, and prints the gigs to the console. Bandsintown results are
+filtered to London by city name or within 30km of the centre.
+
+Skiddle, the RA/Dice scrapers, dedup+storage, the email digest, and the cron
+deploy arrive in later milestones; their modules exist as stubs so the structure
+is stable.
 
 ## Quick start
 
@@ -107,7 +113,7 @@ surprised — this is by design.
 ## Roadmap
 
 1. **Skeleton** — repo layout, config, SQLite schema, Spotify login. ← *done*
-2. **Two easy sources** — Ticketmaster + Bandsintown.
+2. **Two easy sources** — Ticketmaster + Bandsintown. ← *done*
 3. **Matcher + dedup + storage** — events in SQLite, dedup tested.
 4. **Skiddle** — third API source.
 5. **Email digest** — dry-run locally, then for real.

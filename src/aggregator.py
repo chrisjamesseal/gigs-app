@@ -44,16 +44,9 @@ def aggregate(
     all_events: list[Event] = []
     failed: list[str] = []
     for name, fetch in _enabled_sources(config):
-        before = len(all_events)
-        events = safe_fetch(name, fetch, artist_names, location)
-        if not events and _looks_like_failure(name):
+        events, ok = safe_fetch(name, fetch, artist_names, location)
+        if not ok:
             failed.append(name)
         all_events.extend(events)
-        log.debug("aggregate.source_done", source=name, added=len(all_events) - before)
+        log.debug("aggregate.source_done", source=name, added=len(events))
     return AggregationResult(events=all_events, failed_sources=failed)
-
-
-def _looks_like_failure(name: str) -> bool:
-    # Placeholder: until sources are implemented they legitimately return [].
-    # Real failure tracking is folded into safe_fetch's return in milestone 3.
-    return False

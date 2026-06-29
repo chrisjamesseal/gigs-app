@@ -1,0 +1,47 @@
+{
+  "_embedded": {
+    "events": [
+      {
+        "id": "G5vYZ9abc123",
+        "name": "Aphex Twin",
+        "url": "https://www.ticketmaster.co.uk/aphex-twin-london/event/1",
+        "dates": {
+          "start": {
+            "localDate": "2026-07-15",
+            "localTime": "20:00:00",
+            "dateTime": "2026-07-15T19:00:00Z"
+          }
+        },
+        "priceRanges": [
+          { "type": "standard", "currency": "GBP", "min": 45.0, "max": 75.0 }
+        ],
+        "_embedded": {
+          "venues": [
+            { "name": "Wembley Arena", "city": { "name": "London" } }
+          ],
+          "attractions": [
+            { "name": "Aphex Twin" }
+          ]
+        }
+      },
+      {
+        "id": "G5vYZ9def456",
+        "name": "Bonobo (DJ Set)",
+        "url": "https://www.ticketmaster.co.uk/bonobo-london/event/2",
+        "dates": {
+          "start": {
+            "localDate": "2026-08-02"
+          }
+        },
+        "_embedded": {
+          "venues": [
+            { "name": "Printworks", "city": { "name": "London" } }
+          ],
+          "attractions": [
+            { "name": "Bonobo" }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -18,7 +18,8 @@ import sys
 
 import structlog
 
-from . import db, spotify_client
+from . import db, matcher, spotify_client
+from .aggregator import aggregate
 from .config import get_config
 from .logging_config import configure_logging
 
@@ -66,20 +67,45 @@ def run(argv: list[str] | None = None) -> int:
             artists = db.get_artists(conn)
         log.info("artists.loaded_from_cache", count=len(artists))
 
-    # Milestone 1 deliverable: prove the Spotify path end-to-end.
-    followed = [a for a in artists if a.source == "followed"]
-    print(f"\nFollowed artists ({len(followed)}):")
-    for a in followed:
-        print(f"  - {a.name}")
-    liked_only = [a for a in artists if a.source == "liked"]
-    print(f"\nArtists from liked songs ({len(liked_only)}):")
-    for a in liked_only:
-        print(f"  - {a.name}")
-    print(f"\nTotal unique artists: {len(artists)}")
+    followed = sum(1 for a in artists if a.source == "followed")
+    liked = len(artists) - followed
+    log.info("artists.summary", total=len(artists), followed=followed, liked=liked)
 
-    # Milestones 2+ continue from here: aggregate -> match -> dedup -> store -> email.
-    log.info("run.complete", dry_run=args.dry_run, artists=len(artists))
+    # Milestone 2: query enabled sources, match events back to the user's artists,
+    # and print the matches to the console.
+    result = aggregate([a.name for a in artists], config)
+    with db.connect(config.db_path) as conn:
+        matched = matcher.match_events(result.events, artists, conn=conn)
+
+    _print_events(matched, result.failed_sources)
+
+    # Milestones 3+ continue from here: dedup -> store -> email.
+    log.info(
+        "run.complete",
+        dry_run=args.dry_run,
+        artists=len(artists),
+        events_found=len(result.events),
+        matched=len(matched),
+        failed_sources=result.failed_sources,
+    )
     return 0
+
+
+def _print_events(events: list, failed_sources: list[str]) -> None:
+    """Print matched events to the console, grouped by date (milestone 2 output)."""
+    print(f"\nMatched gigs in London ({len(events)}):")
+    if not events:
+        print("  (none — no matching upcoming events found)")
+    for event in sorted(events, key=lambda e: e.date):
+        when = event.date.strftime("%a %d %b %Y %H:%M")
+        price = f" from £{event.price_from:.0f}" if event.price_from else ""
+        print(
+            f"  - {when}  {event.artist_name} @ {event.venue}"
+            f"  [{event.source}]{price}"
+        )
+        print(f"      {event.url}")
+    if failed_sources:
+        print(f"\n⚠️  Sources unavailable this run: {', '.join(failed_sources)}")
 
 
 def main() -> None:
