@@ -36,11 +36,14 @@ city name or within 30km of the centre.
 sources on `(artist, date, venue)` (merging each source's ticket link), and stored
 in SQLite.
 
-**✅ Web app (current):** a mobile-friendly list of upcoming gigs, served live with
-a Refresh button (`python -m src.web`) and published as a static site to GitHub
-Pages via CI. This is the new primary deliverable.
+**✅ Web app:** a mobile-friendly list of upcoming gigs, served live with a Refresh
+button (`python -m src.web`) and published as a static site to GitHub Pages via CI.
+This is the primary deliverable.
 
-Skiddle, the RA/Dice scrapers, and the email digest arrive in later milestones;
+**✅ Milestone 5 — Skiddle (current):** third API source, covering live gigs and
+club/electronic nights (geo-constrained to ~15km of central London).
+
+The RA/Dice scrapers and the optional email digest arrive in later milestones;
 their modules exist as stubs so the structure is stable.
 
 ## Quick start
@@ -172,6 +175,6 @@ is by design.
 2. **Two easy sources** — Ticketmaster + Bandsintown. ← *done*
 3. **Matcher + dedup + storage** — events in SQLite, dedup tested. ← *done*
 4. **Web app** — mobile list, live Refresh, static GitHub Pages deploy. ← *done*
-5. **Skiddle** — third API source.
+5. **Skiddle** — third API source. ← *done*
 6. **RA + Dice scrapers** — isolated, with kill switches.
 7. **Polish** — observability, low-confidence match log, optional email digest.

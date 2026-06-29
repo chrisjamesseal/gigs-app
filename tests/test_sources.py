@@ -7,7 +7,7 @@ objects, including London filtering and timezone handling.
 import json
 from pathlib import Path
 
-from src.sources import bandsintown, ticketmaster
+from src.sources import bandsintown, skiddle, ticketmaster
 from src.sources.util import LONDON_TZ
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -58,3 +58,29 @@ def test_bandsintown_prefers_ticket_offer_url():
     assert village.artist_name == "Floating Points"
     assert village.venue == "Village Underground"
     assert village.date.tzinfo is not None
+
+
+def test_skiddle_parses_and_skips_dateless():
+    events = skiddle.parse_events(
+        _load("skiddle_sample.json"), queried_artist="Bonobo"
+    )
+    # The third result has no date and is dropped.
+    ids = {e.source_event_id for e in events}
+    assert ids == {"40123456", "40123457"}
+    for e in events:
+        assert e.source == "skiddle"
+        assert e.artist_name == "Bonobo"  # the queried keyword
+        assert e.date.tzinfo is not None
+
+
+def test_skiddle_parses_varied_price_fields():
+    events = skiddle.parse_events(
+        _load("skiddle_sample.json"), queried_artist="Bonobo"
+    )
+    by_id = {e.source_event_id: e for e in events}
+    assert by_id["40123456"].price_from == 25.50  # numeric string
+    assert by_id["40123457"].price_from == 18.0  # "£18"
+
+
+def test_skiddle_handles_api_error():
+    assert skiddle.parse_events({"error": 3, "errormessage": "bad"}, "Bonobo") == []
