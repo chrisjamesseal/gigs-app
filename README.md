@@ -15,7 +15,7 @@ for a later milestone.)
   button — open it from your phone over home WiFi.
 - **Published (GitHub Pages):** a daily GitHub Actions job rebuilds a static
   `index.html` from fresh data and deploys it, so you can browse from anywhere at
-  `https://<your-username>.github.io/<repo>/`.
+  <https://chrisjamesseal.github.io/gigs-app/>.
 
 > **Privacy note:** a GitHub Pages site is public, so your published gig list (and
 > `events.json`) is publicly viewable. It exposes gigs/artists, not your account.
@@ -114,7 +114,7 @@ Same hosting model as the map app — a static site built and pushed by CI:
    demand via **Actions → Build & deploy site → Run workflow**, or on push to
    `main`). It refreshes the data and deploys `docs/` to Pages.
 
-The published URL is `https://<your-username>.github.io/<repo>/`.
+The published URL is <https://chrisjamesseal.github.io/gigs-app/>.
 
 ## Project layout
 
