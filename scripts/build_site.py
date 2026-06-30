@@ -49,7 +49,13 @@ def main() -> int:
     db.init_db(config.db_path)
 
     if args.refresh:
-        run_pipeline(config)
+        # Tolerate a not-yet-configured Spotify so the very first deploy still
+        # publishes the site (and its Connect-Spotify page). Once the secrets are
+        # set, the next run populates events.
+        if config.spotify_refresh_token and config.spotify_client_id:
+            run_pipeline(config)
+        else:
+            print("Spotify not configured yet; building without a refresh.")
 
     events = load_upcoming(config)
     with db.connect(config.db_path) as conn:

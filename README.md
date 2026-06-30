@@ -79,20 +79,20 @@ python -m src.web             # open http://localhost:8000
 
 1. Create an app at <https://developer.spotify.com/dashboard>.
 2. Add an HTTPS Redirect URI (Spotify rejects plain `http://`). Use the site's
-   callback page, which must match `SPOTIFY_REDIRECT_URI`:
+   connect page, which must match `SPOTIFY_REDIRECT_URI`:
    `https://chrisjamesseal.github.io/gigs-app/callback.html`
-3. Copy the Client ID (and Client Secret, if shown) into `.env`.
-4. Run `python scripts/spotify_login.py`. Approve access in the browser; you land
-   on the callback page showing a one-time code. Paste it back into the prompt.
-   The script mints a refresh token (scopes `user-follow-read`,
-   `user-library-read`).
+3. Mint a refresh token, either way:
+   - **No install (recommended):** once the site is deployed, open
+     `/callback.html`, paste your Client ID, click **Connect Spotify**, approve,
+     and copy the refresh token it shows. This runs entirely in your browser via
+     PKCE (no client secret needed).
+   - **Local script:** put the Client ID/Secret in `.env` and run
+     `python scripts/spotify_login.py`, then paste the code from the callback page
+     (or your address bar) when prompted.
 
-The refresh token is long-lived: store it in `.env` locally and, for cloud runs,
-as a GitHub Actions secret. You never repeat the login unless you revoke access.
-
-> The callback page is part of the published site, so it works fully once the
-> site is deployed. Before then the login still works: after approving, copy the
-> URL from your browser's address bar (it contains `code=...`) and paste that.
+The refresh token is long-lived: store it as the `SPOTIFY_REFRESH_TOKEN` GitHub
+Actions secret (and/or in local `.env`). You never repeat this unless you revoke
+access. Scopes requested: `user-follow-read`, `user-library-read`.
 
 ## Usage
 
