@@ -10,13 +10,25 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from ..display import source_icon, source_label, titlecase
 from ..models import Event
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
-_env = Environment(
-    loader=FileSystemLoader(str(TEMPLATES_DIR)),
-    autoescape=select_autoescape(["html"]),
+
+def configure_jinja(env: Environment) -> Environment:
+    """Register the shared display filters/globals on a Jinja environment."""
+    env.filters["titlecase"] = titlecase
+    env.globals["source_label"] = source_label
+    env.globals["source_icon"] = source_icon
+    return env
+
+
+_env = configure_jinja(
+    Environment(
+        loader=FileSystemLoader(str(TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html"]),
+    )
 )
 
 
@@ -46,14 +58,15 @@ def events_to_json(events: list[Event]) -> list[dict]:
     """Serialize events to plain dicts for the published ``events.json``."""
     return [
         {
-            "artist": e.artist_name,
+            "artist": titlecase(e.artist_name),
             "matched_artist": e.matched_artist,
-            "venue": e.venue,
-            "city": e.city,
+            "venue": titlecase(e.venue),
+            "city": titlecase(e.city),
             "date": e.date.isoformat(),
             "price_from": e.price_from,
             "url": e.url,
             "links": e.links,
+            "image_url": e.image_url,
             "source": e.source,
         }
         for e in events

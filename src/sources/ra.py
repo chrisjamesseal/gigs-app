@@ -1,4 +1,4 @@
-"""Resident Advisor source (scraper — FRAGILE, best-effort).
+"""Resident Advisor source (scraper - FRAGILE, best-effort).
 
 RA has no public API. This talks to the same private GraphQL endpoint
 (``https://ra.co/graphql``) the website uses, which is reverse-engineered, sits in
@@ -7,7 +7,7 @@ a ToS grey area, and **will break without warning** when RA changes its schema.
 Safeguards (per the spec):
 - Kill switch: ``RA_ENABLED=false`` disables it instantly (checked in the
   aggregator, and again here defensively).
-- Isolation: any failure is caught and returns ``[]`` — the rest of the app keeps
+- Isolation: any failure is caught and returns ``[]`` - the rest of the app keeps
   working. The aggregator already wraps this in ``safe_fetch``; we also guard the
   parse so a schema drift degrades to "no events" rather than an exception.
 - Politeness: a realistic User-Agent and a delay between requests.

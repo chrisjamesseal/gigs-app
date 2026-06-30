@@ -44,7 +44,7 @@ def test_bandsintown_keeps_only_london_events():
     events = bandsintown.parse_events(
         _load("bandsintown_sample.json"), queried_artist="Floating Points"
     )
-    # Village Underground (city=London) + EartH (Hackney, within 30km) — not Manchester.
+    # Village Underground (city=London) + EartH (Hackney, within 30km) - not Manchester.
     ids = {e.source_event_id for e in events}
     assert ids == {"1001", "1003"}
 

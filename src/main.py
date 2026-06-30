@@ -1,7 +1,7 @@
 """CLI entrypoint for the London Gig Radar pipeline.
 
-Run as ``python -m src.main``. It runs the full refresh — pull Spotify artists,
-query gig sources, match, dedup, and store events in SQLite — then prints the
+Run as ``python -m src.main``. It runs the full refresh - pull Spotify artists,
+query gig sources, match, dedup, and store events in SQLite - then prints the
 stored upcoming gigs. The same pipeline backs the web app (``python -m src.web``);
 this is the headless way to populate the database (e.g. from cron).
 
@@ -20,6 +20,7 @@ import sys
 import structlog
 
 from .config import get_config
+from .display import source_label, titlecase
 from .logging_config import configure_logging
 from .models import Event
 from .pipeline import load_upcoming, run_pipeline
@@ -71,13 +72,13 @@ def _print_events(events: list[Event], failed_sources: list[str]) -> None:
     """Print stored upcoming events to the console, soonest first."""
     print(f"\nUpcoming London gigs by your artists ({len(events)}):")
     if not events:
-        print("  (none yet — add API keys and refresh, or none were found)")
+        print("  (none yet; add API keys and refresh, or none were found)")
     for event in events:
         when = event.date.strftime("%a %d %b %Y %H:%M")
         price = f" from £{event.price_from:.0f}" if event.price_from else ""
-        sources = ", ".join(event.links.keys()) or event.source
+        sources = ", ".join(source_label(s) for s in (event.links or {event.source: ''}))
         print(
-            f"  - {when}  {event.artist_name} @ {event.venue}"
+            f"  {when}  {titlecase(event.artist_name)} @ {titlecase(event.venue)}"
             f"  [{sources}]{price}"
         )
         print(f"      {event.url}")
@@ -89,7 +90,7 @@ def main() -> None:
     try:
         sys.exit(run())
     except RuntimeError as exc:
-        # Expected, actionable errors (e.g. missing config) — no traceback noise.
+        # Expected, actionable errors (e.g. missing config) - no traceback noise.
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(2)
 

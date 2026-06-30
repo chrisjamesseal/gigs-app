@@ -51,7 +51,7 @@ class Config:
     email_to: str | None
     email_from: str | None
     resend_api_key: str | None
-    # SMTP fallback (e.g. Gmail app password) — used if no Resend key is set.
+    # SMTP fallback (e.g. Gmail app password) - used if no Resend key is set.
     smtp_host: str | None
     smtp_port: int
     smtp_username: str | None

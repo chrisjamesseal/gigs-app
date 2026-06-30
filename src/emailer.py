@@ -1,4 +1,4 @@
-"""Weekly email digest — the final milestone.
+"""Weekly email digest - the final milestone.
 
 The email is a short nudge, not a replica of the web app: it leads with the *new*
 gigs found since the last digest, links to the published site for the full,
@@ -26,6 +26,7 @@ import structlog
 from . import db
 from .aggregator import dedup_key
 from .config import Config
+from .display import source_icon, source_label, titlecase
 from .models import Event
 from .pipeline import load_upcoming
 
@@ -53,7 +54,7 @@ def _split_new_seen(
 
 
 def _fmt_when(event: Event) -> str:
-    return event.date.strftime("%a %d %b · %H:%M")
+    return event.date.strftime("%a %d %b, %H:%M")
 
 
 def _links(event: Event) -> dict[str, str]:
@@ -62,7 +63,7 @@ def _links(event: Event) -> dict[str, str]:
 
 def subject_line(events: list[Event], new_keys: set[str]) -> str:
     new_count = len({dedup_key(e) for e in events} & new_keys)
-    return f"🎧 {len(events)} London gigs this week — {new_count} new"
+    return f"🎧 {len(events)} London gigs this week, {new_count} new"
 
 
 def render_digest(events: list[Event], new_keys: set[str]) -> tuple[str, str, str]:
@@ -80,10 +81,12 @@ def render_digest(events: list[Event], new_keys: set[str]) -> tuple[str, str, st
         for month, group in _group_by_month(section):
             text_lines.append(f"  {month}")
             for e in group:
-                price = f" — from £{e.price_from:.0f}" if e.price_from else ""
-                text_lines.append(f"    {_fmt_when(e)}  {e.artist_name} @ {e.venue}{price}")
+                price = f", from £{e.price_from:.0f}" if e.price_from else ""
+                artist = titlecase(e.artist_name)
+                venue = titlecase(e.venue) or "Venue TBA"
+                text_lines.append(f"    {_fmt_when(e)}  {artist} @ {venue}{price}")
                 for src, url in _links(e).items():
-                    text_lines.append(f"      tickets ({src}): {url}")
+                    text_lines.append(f"      Tickets ({source_label(src)}): {url}")
         text_lines.append("")
 
     _text_section("New this week", new)
@@ -93,6 +96,58 @@ def render_digest(events: list[Event], new_keys: set[str]) -> tuple[str, str, st
     # --- html ---
     html_body = _render_html(new, seen, subject)
     return subject, text_body, html_body
+
+
+def _photo_cell(event: Event) -> str:
+    """64px rounded artist photo (or an initial fallback) for the right column."""
+    if event.image_url:
+        return (
+            f'<img src="{event.image_url}" width="64" height="64" alt="" '
+            'style="width:64px;height:64px;border-radius:10px;object-fit:cover;'
+            'display:block;">'
+        )
+    initial = (titlecase(event.artist_name) or "?")[0]
+    return (
+        '<div style="width:64px;height:64px;border-radius:10px;background:#1a1a20;'
+        "color:#9a9aa5;font-size:24px;font-weight:700;line-height:64px;"
+        f'text-align:center;">{initial}</div>'
+    )
+
+
+def _event_row(event: Event, *, badge: bool) -> str:
+    price = (
+        f'<span style="color:#bbb;font-size:13px;">from £{event.price_from:.0f}</span>'
+        if event.price_from
+        else ""
+    )
+    tickets = " ".join(
+        f'<a href="{url}" style="color:#a78bfa;font-size:12px;text-decoration:none;'
+        'display:inline-block;">'
+        f'<img src="{source_icon(src)}" width="13" height="13" alt="" '
+        'style="vertical-align:middle;border-radius:3px;margin-right:4px;">'
+        f"{source_label(src)}</a>"
+        for src, url in _links(event).items()
+    )
+    tag = (
+        '<span style="background:#6f3cff;color:#fff;font-size:10px;border-radius:8px;'
+        'padding:1px 6px;margin-left:6px;">NEW</span>'
+        if badge
+        else ""
+    )
+    artist = titlecase(event.artist_name)
+    venue = titlecase(event.venue) or "Venue TBA"
+    return (
+        '<tr><td style="padding:8px 0;border-bottom:1px solid #2a2a32;">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+        '<td style="vertical-align:top;">'
+        f'<div style="font-weight:600;color:#f0f0f2;">{artist}{tag}</div>'
+        f'<div style="color:#9a9aa5;font-size:13px;">{_fmt_when(event)}, {venue}</div>'
+        f'<div style="margin-top:6px;">{price} {tickets}</div>'
+        "</td>"
+        f'<td width="64" style="vertical-align:top;padding-left:12px;">'
+        f"{_photo_cell(event)}</td>"
+        "</tr></table></td></tr>"
+    )
 
 
 def _render_html(new: list[Event], seen: list[Event], subject: str) -> str:
@@ -109,30 +164,7 @@ def _render_html(new: list[Event], seen: list[Event], subject: str) -> str:
                 f"{month}</td></tr>"
             )
             for e in group:
-                price = (
-                    f'<span style="color:#bbb;font-size:13px;">from £{e.price_from:.0f}</span>'
-                    if e.price_from
-                    else ""
-                )
-                tickets = " ".join(
-                    f'<a href="{url}" style="color:#a78bfa;font-size:12px;'
-                    f'text-decoration:none;">tickets · {src}</a>'
-                    for src, url in _links(e).items()
-                )
-                tag = (
-                    '<span style="background:#6f3cff;color:#fff;font-size:10px;'
-                    'border-radius:8px;padding:1px 6px;margin-left:6px;">NEW</span>'
-                    if badge
-                    else ""
-                )
-                rows.append(
-                    '<tr><td style="padding:6px 0;border-bottom:1px solid #2a2a32;">'
-                    f'<div style="font-weight:600;color:#f0f0f2;">{e.artist_name}{tag}</div>'
-                    f'<div style="color:#9a9aa5;font-size:13px;">{_fmt_when(e)} · '
-                    f"{e.venue or 'Venue TBA'}</div>"
-                    f'<div style="margin-top:4px;">{price} {tickets}</div>'
-                    "</td></tr>"
-                )
+                rows.append(_event_row(e, badge=badge))
         return "".join(rows)
 
     body = section("New this week", new, badge=True) + section(
@@ -216,7 +248,7 @@ def run_digest(config: Config, *, dry_run: bool = False) -> str:
     """Build and (unless dry-run) send the weekly digest. Returns the subject.
 
     Reads upcoming events from the DB (populate it first via the pipeline),
-    flags those not yet emailed as new, and — on a real send — marks every
+    flags those not yet emailed as new, and - on a real send - marks every
     included event as sent so the next digest only highlights fresh finds.
     """
     events = load_upcoming(config)

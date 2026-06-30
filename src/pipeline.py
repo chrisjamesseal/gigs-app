@@ -4,7 +4,7 @@
 
 Calling :func:`run_pipeline` repopulates the ``events`` table with the current set
 of matched, deduped London gigs and records a run summary. The web UI then simply
-reads ``events`` — it never hits the network on a page load.
+reads ``events`` - it never hits the network on a page load.
 """
 
 from __future__ import annotations

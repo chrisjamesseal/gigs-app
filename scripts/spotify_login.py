@@ -46,13 +46,13 @@ class _CallbackHandler(BaseHTTPRequestHandler):
     error: str | None = None
     expected_state: str | None = None
 
-    def do_GET(self) -> None:  # noqa: N802 — required name
+    def do_GET(self) -> None:  # noqa: N802 - required name
         parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
 
         state = params.get("state", [None])[0]
         if state != _CallbackHandler.expected_state:
-            _CallbackHandler.error = "state mismatch (possible CSRF) — aborting"
+            _CallbackHandler.error = "state mismatch (possible CSRF) - aborting"
         elif "error" in params:
             _CallbackHandler.error = params["error"][0]
         else:
@@ -62,7 +62,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
         body = (
-            "<h2>London Gig Radar</h2><p>Login complete — "
+            "<h2>London Gig Radar</h2><p>Login complete - "
             "you can close this tab and return to the terminal.</p>"
             if _CallbackHandler.error is None
             else f"<h2>Login failed</h2><p>{_CallbackHandler.error}</p>"
@@ -130,7 +130,7 @@ def main() -> int:
         return 1
 
     print("\n" + "=" * 64)
-    print("SUCCESS — add this to your .env and to GitHub Actions secrets:\n")
+    print("SUCCESS - add this to your .env and to GitHub Actions secrets:\n")
     print(f"SPOTIFY_REFRESH_TOKEN={refresh_token}")
     print("=" * 64)
     return 0

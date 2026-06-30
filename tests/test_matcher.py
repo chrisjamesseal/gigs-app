@@ -85,7 +85,7 @@ def test_match_events_keeps_and_annotates():
 def test_match_events_logs_low_confidence(tmp_path):
     path = str(tmp_path / "m.db")
     db.init_db(path)
-    # "Bonobu" ~ "bonobo" scores ~83: in [FUZZY_FLOOR, FUZZY_THRESHOLD) — logged,
+    # "Bonobu" ~ "bonobo" scores ~83: in [FUZZY_FLOOR, FUZZY_THRESHOLD) - logged,
     # not matched.
     with db.connect(path) as conn:
         matched = match_events([_event("Bonobu")], ARTISTS, conn=conn)

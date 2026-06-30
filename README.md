@@ -3,16 +3,16 @@
 A personal **web app** listing every upcoming London gig by artists you follow or
 have liked songs from on Spotify. A scheduled job pulls your Spotify artists,
 queries multiple gig sources, matches and dedups the results, and publishes a
-mobile-friendly page to **GitHub Pages** — refreshed automatically.
+mobile-friendly page to **GitHub Pages** - refreshed automatically.
 
-Single-user personal tool — no ticket buying, no multi-user support. (The web app
+Single-user personal tool - no ticket buying, no multi-user support. (The web app
 replaced the originally-planned email digest; the email code remains in the repo
 for a later milestone.)
 
 ## How it runs
 
 - **Live (local):** `python -m src.web` serves the list with a working **Refresh**
-  button — open it from your phone over home WiFi.
+  button - open it from your phone over home WiFi.
 - **Published (GitHub Pages):** a daily GitHub Actions job rebuilds a static
   `index.html` from fresh data and deploys it, so you can browse from anywhere at
   <https://chrisjamesseal.github.io/gigs-app/>.
@@ -25,14 +25,14 @@ for a later milestone.)
 
 This repo is built milestone-by-milestone (see [Roadmap](#roadmap)).
 
-**✅ Milestone 1 — Skeleton:** project layout, config loader, SQLite schema, and a
+**✅ Milestone 1 - Skeleton:** project layout, config loader, SQLite schema, and a
 one-time Spotify login that mints a refresh token.
 
-**✅ Milestone 2 — Two easy sources:** Ticketmaster (Discovery API) and Bandsintown,
+**✅ Milestone 2 - Two easy sources:** Ticketmaster (Discovery API) and Bandsintown,
 with artist matching (exact + fuzzy). Bandsintown results are filtered to London by
 city name or within 30km of the centre.
 
-**✅ Milestone 3 — Matcher + dedup + storage:** events are matched, deduped across
+**✅ Milestone 3 - Matcher + dedup + storage:** events are matched, deduped across
 sources on `(artist, date, venue)` (merging each source's ticket link), and stored
 in SQLite.
 
@@ -40,15 +40,15 @@ in SQLite.
 button (`python -m src.web`) and published as a static site to GitHub Pages via CI.
 This is the primary deliverable.
 
-**✅ Milestone 5 — Skiddle:** third API source, covering live gigs and
+**✅ Milestone 5 - Skiddle:** third API source, covering live gigs and
 club/electronic nights (geo-constrained to ~15km of central London).
 
-**✅ Milestone 6 — RA + Dice scrapers:** isolated, kill-switched,
+**✅ Milestone 6 - RA + Dice scrapers:** isolated, kill-switched,
 defensively-parsed scrapers for Resident Advisor and Dice. These are *best-effort*
-and need a one-time live-query verification — see
+and need a one-time live-query verification - see
 [REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md).
 
-**✅ Milestone 7 — Email digest (current):** a weekly multipart (text + dark-mode
+**✅ Milestone 7 - Email digest (current):** a weekly multipart (text + dark-mode
 HTML) email that leads with *new* finds, tucks already-seen gigs into "still
 upcoming", and **links to the web app** for the full list. Sends via Resend or
 SMTP; `--dry-run` previews without sending. All code milestones are now complete.
@@ -66,7 +66,7 @@ uv pip install -e ".[dev]"
 cp .env.example .env
 # Fill in SPOTIFY_CLIENT_ID (and SPOTIFY_CLIENT_SECRET if your app has one).
 
-# 3. One-time Spotify login — mints a refresh token (opens a browser).
+# 3. One-time Spotify login - mints a refresh token (opens a browser).
 python scripts/spotify_login.py
 # Paste the printed SPOTIFY_REFRESH_TOKEN into .env.
 
@@ -124,7 +124,7 @@ python scripts/build_site.py            # rebuild from the existing DB only
 
 ## Deploying to GitHub Pages
 
-Same hosting model as the map app — a static site built and pushed by CI:
+Same hosting model as the map app - a static site built and pushed by CI:
 
 1. In the repo, **Settings → Pages → Build and deployment → Source: GitHub
    Actions**.
@@ -185,17 +185,17 @@ without warning.** They are built on a strictly best-effort basis:
 - Each has a kill switch (`RA_ENABLED` / `DICE_ENABLED`) to disable it instantly.
 
 When (not if) they stop working, the site still updates with the remaining
-sources, plus a banner noting that coverage was partial. Don't be surprised — this
+sources, plus a banner noting that coverage was partial. Don't be surprised - this
 is by design. To re-capture their request shapes, see
 [REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md).
 
 ## Roadmap
 
-1. **Skeleton** — repo layout, config, SQLite schema, Spotify login. ← *done*
-2. **Two easy sources** — Ticketmaster + Bandsintown. ← *done*
-3. **Matcher + dedup + storage** — events in SQLite, dedup tested. ← *done*
-4. **Web app** — mobile list, live Refresh, static GitHub Pages deploy. ← *done*
-5. **Skiddle** — third API source. ← *done*
-6. **RA + Dice scrapers** — isolated, with kill switches. ← *done*
-7. **Email digest** — a weekly nudge that **links to the web app** for the full
+1. **Skeleton** - repo layout, config, SQLite schema, Spotify login. ← *done*
+2. **Two easy sources** - Ticketmaster + Bandsintown. ← *done*
+3. **Matcher + dedup + storage** - events in SQLite, dedup tested. ← *done*
+4. **Web app** - mobile list, live Refresh, static GitHub Pages deploy. ← *done*
+5. **Skiddle** - third API source. ← *done*
+6. **RA + Dice scrapers** - isolated, with kill switches. ← *done*
+7. **Email digest** - a weekly nudge that **links to the web app** for the full
    list, highlighting new finds. ← *done*

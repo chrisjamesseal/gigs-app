@@ -91,7 +91,7 @@ def fetch_events(artist_names: list[str], location: str = "London") -> list[Even
             url = f"{API_BASE}/{quoted}/events"
             resp = client.get(url, params={"app_id": config.bandsintown_app_id})
             if resp.status_code == 404:
-                continue  # unknown artist — not an error
+                continue  # unknown artist - not an error
             resp.raise_for_status()
             payload = resp.json()
             if not isinstance(payload, list):

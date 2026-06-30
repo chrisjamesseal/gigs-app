@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS artists (
     name            TEXT NOT NULL,
     normalized_name TEXT NOT NULL,
     source          TEXT NOT NULL CHECK (source IN ('followed', 'liked')),
+    image_url       TEXT,
     updated_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_artists_normalized ON artists (normalized_name);
@@ -88,25 +89,36 @@ def connect(db_path: str) -> Iterator[sqlite3.Connection]:
 
 
 def init_db(db_path: str) -> None:
-    """Create all tables if they do not already exist."""
+    """Create all tables if they do not already exist (and apply migrations)."""
     with connect(db_path) as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Lightweight, idempotent column additions for pre-existing databases."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(artists)")}
+    if "image_url" not in cols:
+        conn.execute("ALTER TABLE artists ADD COLUMN image_url TEXT")
 
 
 def upsert_artists(conn: sqlite3.Connection, artists: Iterable[Artist]) -> int:
     """Insert or update cached artists; returns the number written."""
     now = datetime.now().astimezone().isoformat()
     rows = [
-        (a.spotify_id, a.name, a.normalized_name, a.source, now) for a in artists
+        (a.spotify_id, a.name, a.normalized_name, a.source, a.image_url, now)
+        for a in artists
     ]
     conn.executemany(
         """
-        INSERT INTO artists (spotify_id, name, normalized_name, source, updated_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO artists
+            (spotify_id, name, normalized_name, source, image_url, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(spotify_id) DO UPDATE SET
             name = excluded.name,
             normalized_name = excluded.normalized_name,
             source = excluded.source,
+            image_url = COALESCE(excluded.image_url, artists.image_url),
             updated_at = excluded.updated_at
         """,
         rows,
@@ -117,7 +129,8 @@ def upsert_artists(conn: sqlite3.Connection, artists: Iterable[Artist]) -> int:
 def get_artists(conn: sqlite3.Connection) -> list[Artist]:
     """Return all cached artists."""
     cur = conn.execute(
-        "SELECT spotify_id, name, normalized_name, source FROM artists ORDER BY name"
+        "SELECT spotify_id, name, normalized_name, source, image_url "
+        "FROM artists ORDER BY name"
     )
     return [
         Artist(
@@ -125,6 +138,7 @@ def get_artists(conn: sqlite3.Connection) -> list[Artist]:
             name=row["name"],
             normalized_name=row["normalized_name"],
             source=row["source"],
+            image_url=row["image_url"],
         )
         for row in cur.fetchall()
     ]
@@ -178,13 +192,16 @@ def get_upcoming_events(
     """Return stored events from now through ``lookahead_days``, soonest first."""
     now = now or datetime.now().astimezone()
     horizon = now + timedelta(days=lookahead_days)
+    # Join the matched Spotify artist to display its canonical name + photo.
     cur = conn.execute(
         """
-        SELECT source, source_event_id, artist_name, matched_artist, venue, city,
-               date, url, price_from, fetched_at, links
-        FROM events
-        WHERE date >= ? AND date <= ?
-        ORDER BY date ASC
+        SELECT e.source, e.source_event_id, e.artist_name, e.matched_artist, e.venue,
+               e.city, e.date, e.url, e.price_from, e.fetched_at, e.links,
+               a.name AS artist_display, a.image_url AS artist_image
+        FROM events e
+        LEFT JOIN artists a ON a.normalized_name = e.matched_artist
+        WHERE e.date >= ? AND e.date <= ?
+        ORDER BY e.date ASC
         """,
         (now.isoformat(), horizon.isoformat()),
     )
@@ -194,7 +211,8 @@ def get_upcoming_events(
             Event(
                 source=row["source"],
                 source_event_id=row["source_event_id"],
-                artist_name=row["artist_name"],
+                # Prefer the canonical Spotify artist name for display.
+                artist_name=row["artist_display"] or row["artist_name"],
                 matched_artist=row["matched_artist"],
                 venue=row["venue"],
                 city=row["city"],
@@ -205,6 +223,7 @@ def get_upcoming_events(
                 if row["fetched_at"]
                 else None,
                 links=json.loads(row["links"] or "{}"),
+                image_url=row["artist_image"],
             )
         )
     return events

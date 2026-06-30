@@ -1,6 +1,6 @@
 """FastAPI application serving the gig list and a refresh trigger.
 
-Page loads only ever read from SQLite — they never hit the network. Refreshing the
+Page loads only ever read from SQLite - they never hit the network. Refreshing the
 data (Spotify + sources) is an explicit action (``POST /refresh``) that runs the
 shared pipeline in a background thread so the request returns immediately; the page
 shows a "refreshing…" banner until it finishes.
@@ -19,11 +19,12 @@ from fastapi.templating import Jinja2Templates
 
 from ..config import get_config
 from ..pipeline import load_upcoming, run_pipeline
-from .render import events_to_json, group_by_month
+from .render import configure_jinja, events_to_json, group_by_month
 
 log = structlog.get_logger(__name__)
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+configure_jinja(TEMPLATES.env)
 
 app = FastAPI(title="London Gig Radar")
 
@@ -50,7 +51,7 @@ class RefreshState:
     def _run(self) -> None:
         try:
             run_pipeline(get_config())
-        except Exception as exc:  # noqa: BLE001 — surface any failure to the UI
+        except Exception as exc:  # noqa: BLE001 - surface any failure to the UI
             log.error("web.refresh_failed", error=str(exc))
             with self._lock:
                 self.error = str(exc)

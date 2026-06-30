@@ -7,7 +7,7 @@ its schema. They are best-effort by design: if one breaks, it returns no events 
 the rest of the app (Ticketmaster, Bandsintown, Skiddle) carries on, with a banner
 noting partial coverage.
 
-Both have kill switches in `.env` — set `RA_ENABLED=false` or `DICE_ENABLED=false`
+Both have kill switches in `.env` - set `RA_ENABLED=false` or `DICE_ENABLED=false`
 to disable instantly.
 
 When a scraper stops returning events, re-capture its current request shape:
@@ -43,6 +43,6 @@ The London RA area id is currently `13`; verify it hasn't changed.
 ## Why parsing is defensive
 
 Both parsers are written so that an unexpected shape yields *fewer events*, never an
-exception — so a partial schema drift degrades gracefully instead of taking down a
+exception - so a partial schema drift degrades gracefully instead of taking down a
 refresh. The network call itself is additionally wrapped by `safe_fetch` in the
 aggregator, which catches everything and returns `[]` on failure.

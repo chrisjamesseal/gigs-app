@@ -1,7 +1,7 @@
-"""Dice source (scraper — FRAGILE, best-effort).
+"""Dice source (scraper - FRAGILE, best-effort).
 
 Dice has no public API. This talks to the private API (``https://api.dice.fm/``)
-its web/app clients use — reverse-engineered, ToS grey area, and **liable to break
+its web/app clients use - reverse-engineered, ToS grey area, and **liable to break
 without warning**.
 
 Safeguards mirror the RA source:

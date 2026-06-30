@@ -9,7 +9,7 @@ from src.models import Event
 from src.sources.util import LONDON_TZ
 
 
-def _event(eid, artist, day, price=None):
+def _event(eid, artist, day, price=None, image=None):
     return Event(
         source="ticketmaster",
         source_event_id=eid,
@@ -21,6 +21,7 @@ def _event(eid, artist, day, price=None):
         url=f"https://example/{eid}",
         price_from=price,
         links={"ticketmaster": f"https://example/{eid}"},
+        image_url=image,
     )
 
 
@@ -33,7 +34,10 @@ def test_subject_counts_new():
 
 
 def test_render_marks_new_and_links_site():
-    events = [_event("1", "Aphex Twin", 5, price=45), _event("2", "Bonobo", 6)]
+    events = [
+        _event("1", "Aphex Twin", 5, price=45, image="https://img/aphex.jpg"),
+        _event("2", "Bonobo", 6),
+    ]
     new_keys = {dedup_key(events[0])}
     subject, text, html = emailer.render_digest(events, new_keys)
 
@@ -42,6 +46,11 @@ def test_render_marks_new_and_links_site():
     assert "Aphex Twin" in html and "Bonobo" in html
     assert "from £45" in text
     assert ">NEW<" in html  # the new badge appears
+    assert "https://img/aphex.jpg" in html  # artist photo
+    assert "Resident Advisor" not in html  # only providers that are present
+    assert "Ticketmaster" in html  # friendly provider label
+    assert "s2/favicons" in html  # provider icon
+    assert "—" not in html and "—" not in text  # no large dashes
 
 
 def test_render_empty():

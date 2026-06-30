@@ -13,6 +13,7 @@ class Artist:
     name: str
     normalized_name: str  # lowercased, accents stripped, "the" removed
     source: Literal["followed", "liked"]
+    image_url: str | None = None  # Spotify artist photo, for display
 
 
 @dataclass
@@ -28,3 +29,4 @@ class Event:
     price_from: float | None = None
     fetched_at: datetime | None = None
     links: dict[str, str] = field(default_factory=dict)  # source -> url, set on dedup
+    image_url: str | None = None  # artist photo, populated for display from the DB

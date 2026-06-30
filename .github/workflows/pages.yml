@@ -1,6 +1,6 @@
 name: Build & deploy site
 
-# Builds the static gig list and publishes it to GitHub Pages — the same hosting
+# Builds the static gig list and publishes it to GitHub Pages - the same hosting
 # model as the "london-router" map app. Runs daily, on demand, and on push to main.
 on:
   schedule:

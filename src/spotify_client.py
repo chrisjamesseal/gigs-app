@@ -6,9 +6,9 @@ job exchanges that refresh token for short-lived access tokens with no human in
 the loop.
 
 Milestone 1 surface:
-- :func:`refresh_access_token` — refresh-token -> access-token.
-- :func:`exchange_code_for_tokens` — used by the login script (PKCE code exchange).
-- :func:`fetch_artists` — followed + liked-song artists, deduped to ``Artist``.
+- :func:`refresh_access_token` - refresh-token -> access-token.
+- :func:`exchange_code_for_tokens` - used by the login script (PKCE code exchange).
+- :func:`fetch_artists` - followed + liked-song artists, deduped to ``Artist``.
 """
 
 from __future__ import annotations
@@ -116,6 +116,15 @@ def _paginated_get(
     return items
 
 
+def _pick_image(artist_obj: dict) -> str | None:
+    """Choose a reasonable thumbnail from a Spotify artist's images (medium)."""
+    images = artist_obj.get("images") or []
+    if not images:
+        return None
+    # Images come largest-first; prefer a mid-size one to keep thumbnails light.
+    return images[1]["url"] if len(images) > 1 else images[0]["url"]
+
+
 def get_followed_artists(client: httpx.Client) -> list[Artist]:
     """Followed artists via ``GET /me/following?type=artist``."""
     raw = _paginated_get(
@@ -131,9 +140,28 @@ def get_followed_artists(client: httpx.Client) -> list[Artist]:
                 name=a["name"],
                 normalized_name=normalize_name(a["name"]),
                 source="followed",
+                image_url=_pick_image(a),
             )
         )
     return artists
+
+
+def enrich_images(client: httpx.Client, artists: list[Artist]) -> None:
+    """Fill in missing artist images via ``GET /artists?ids=`` (batches of 50).
+
+    ``/me/tracks`` returns simplified artist objects without images, so liked-song
+    artists arrive imageless; this backfills them in place.
+    """
+    missing = [a for a in artists if not a.image_url and a.spotify_id]
+    by_id = {a.spotify_id: a for a in missing}
+    ids = list(by_id)
+    for start in range(0, len(ids), 50):
+        chunk = ids[start : start + 50]
+        resp = client.get(f"{API_BASE}/artists", params={"ids": ",".join(chunk)})
+        resp.raise_for_status()
+        for obj in resp.json().get("artists") or []:
+            if obj and obj.get("id") in by_id:
+                by_id[obj["id"]].image_url = _pick_image(obj)
 
 
 def get_liked_song_artists(client: httpx.Client) -> list[Artist]:
@@ -175,8 +203,8 @@ def fetch_artists(config: Config) -> list[Artist]:
     with httpx.Client(headers=headers, timeout=_TIMEOUT) as client:
         followed = get_followed_artists(client)
         liked = get_liked_song_artists(client)
-
-    merged = _dedup(followed + liked)
+        merged = _dedup(followed + liked)
+        enrich_images(client, merged)
     log.info(
         "spotify.artists_fetched",
         followed=len(followed),
