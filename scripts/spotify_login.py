@@ -4,15 +4,19 @@ Run once on your own machine:
 
     python scripts/spotify_login.py
 
-It opens a browser to Spotify's consent screen, captures the redirect on a local
-loopback server, exchanges the code for tokens, and prints the refresh token.
-Copy that token into ``.env`` (``SPOTIFY_REFRESH_TOKEN``) and, for cloud runs,
-into your GitHub Actions secrets. You never have to do this again unless you
-revoke access.
+It opens a browser to Spotify's consent screen, then exchanges the authorization
+code for tokens and prints the refresh token. Copy that token into ``.env``
+(``SPOTIFY_REFRESH_TOKEN``) and, for cloud runs, into your GitHub Actions secrets.
+You never have to do this again unless you revoke access.
 
-Requires ``SPOTIFY_CLIENT_ID`` (and the redirect URI registered on your Spotify
-app) to be set in the environment / ``.env``. ``SPOTIFY_CLIENT_SECRET`` is
-optional with PKCE but used if present.
+Spotify requires an HTTPS redirect URI, which a local server can't receive, so by
+default the script asks you to paste the URL you were redirected to (it contains
+the code). If you registered an ``http://127.0.0.1`` loopback URI instead, the
+script catches the redirect automatically. Force the paste flow with ``--manual``.
+
+Requires ``SPOTIFY_CLIENT_ID`` and ``SPOTIFY_REDIRECT_URI`` (matching the one
+registered on your Spotify app). ``SPOTIFY_CLIENT_SECRET`` is optional with PKCE
+but used if present.
 """
 
 from __future__ import annotations
@@ -73,15 +77,64 @@ class _CallbackHandler(BaseHTTPRequestHandler):
         pass
 
 
+def _is_loopback(redirect_uri: str) -> bool:
+    host = urllib.parse.urlparse(redirect_uri).hostname
+    return host in ("127.0.0.1", "localhost", "::1")
+
+
+def _capture_code_loopback(redirect_uri: str) -> str | None:
+    """Run a local server to catch the redirect (for http loopback URIs)."""
+    parsed = urllib.parse.urlparse(redirect_uri)
+    host = parsed.hostname or "127.0.0.1"
+    port = parsed.port or 8888
+    server = HTTPServer((host, port), _CallbackHandler)
+    print(f"Waiting for the redirect on {redirect_uri} ...")
+    while _CallbackHandler.code is None and _CallbackHandler.error is None:
+        server.handle_request()
+    server.server_close()
+    if _CallbackHandler.error:
+        print(f"\nAuthorization failed: {_CallbackHandler.error}", file=sys.stderr)
+        return None
+    return _CallbackHandler.code
+
+
+def _capture_code_manual(expected_state: str) -> str | None:
+    """Read the authorization code by pasting the redirected URL.
+
+    Works with any HTTPS redirect URI: after you approve, Spotify sends your
+    browser to the redirect URI with ``?code=...&state=...`` in the address bar.
+    Copy that whole URL (or just the code) and paste it here.
+    """
+    print(
+        "\nAfter you click Agree, your browser lands on your redirect URL.\n"
+        "Copy the FULL URL from the address bar and paste it below "
+        "(it contains 'code=').\n"
+    )
+    pasted = input("Redirected URL (or just the code): ").strip()
+    # Accept a full URL, a bare query string, or just the code itself.
+    query = urllib.parse.urlparse(pasted).query or pasted
+    params = urllib.parse.parse_qs(query)
+    if "error" in params:
+        print(f"\nAuthorization failed: {params['error'][0]}", file=sys.stderr)
+        return None
+    state = params.get("state", [None])[0]
+    if state is not None and state != expected_state:
+        print("\nState mismatch (possible CSRF). Aborting.", file=sys.stderr)
+        return None
+    code = params.get("code", [None])[0]
+    if code:
+        return code
+    # They may have pasted just the raw code.
+    return pasted if pasted and "=" not in pasted and "/" not in pasted else None
+
+
 def main() -> int:
     config = get_config()
     config.require("spotify_client_id")
     client_id = config.spotify_client_id
     redirect_uri = config.spotify_redirect_uri
 
-    parsed_redirect = urllib.parse.urlparse(redirect_uri)
-    host = parsed_redirect.hostname or "127.0.0.1"
-    port = parsed_redirect.port or 8888
+    force_manual = "--manual" in sys.argv
 
     verifier, challenge = _make_pkce_pair()
     state = secrets.token_urlsafe(16)
@@ -107,20 +160,20 @@ def main() -> int:
     except Exception:
         pass
 
-    server = HTTPServer((host, port), _CallbackHandler)
-    print(f"Waiting for the redirect on {redirect_uri} ...")
-    while _CallbackHandler.code is None and _CallbackHandler.error is None:
-        server.handle_request()
-    server.server_close()
+    # HTTPS redirect URIs (Spotify's requirement) can't be caught by a local
+    # server, so fall back to pasting the redirected URL.
+    if force_manual or not _is_loopback(redirect_uri):
+        code = _capture_code_manual(state)
+    else:
+        code = _capture_code_loopback(redirect_uri)
 
-    if _CallbackHandler.error:
-        print(f"\nAuthorization failed: {_CallbackHandler.error}", file=sys.stderr)
+    if not code:
         return 1
 
     tokens = exchange_code_for_tokens(
         client_id=client_id,
         client_secret=config.spotify_client_secret,
-        code=_CallbackHandler.code,
+        code=code,
         redirect_uri=redirect_uri,
         code_verifier=verifier,
     )

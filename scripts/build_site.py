@@ -27,7 +27,11 @@ from src import db  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.logging_config import configure_logging  # noqa: E402
 from src.pipeline import load_upcoming, run_pipeline  # noqa: E402
-from src.web.render import events_to_json, render_static_page  # noqa: E402
+from src.web.render import (  # noqa: E402
+    TEMPLATES_DIR,
+    events_to_json,
+    render_static_page,
+)
 
 
 def main() -> int:
@@ -57,10 +61,17 @@ def main() -> int:
         fh.write(html)
     with open(os.path.join(args.output, "events.json"), "w", encoding="utf-8") as fh:
         json.dump(events_to_json(events), fh, indent=2)
+    # The Spotify OAuth callback landing page (shows the code to copy).
+    callback = (TEMPLATES_DIR / "callback.html").read_text(encoding="utf-8")
+    with open(os.path.join(args.output, "callback.html"), "w", encoding="utf-8") as fh:
+        fh.write(callback)
     # Tell GitHub Pages not to run the content through Jekyll.
     open(os.path.join(args.output, ".nojekyll"), "w").close()
 
-    print(f"Built {len(events)} events into {args.output}/ (index.html, events.json)")
+    print(
+        f"Built {len(events)} events into {args.output}/ "
+        "(index.html, callback.html, events.json)"
+    )
     return 0
 
 

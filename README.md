@@ -78,14 +78,21 @@ python -m src.web             # open http://localhost:8000
 ### Spotify app setup
 
 1. Create an app at <https://developer.spotify.com/dashboard>.
-2. Add `http://127.0.0.1:8888/callback` as a Redirect URI (must match
-   `SPOTIFY_REDIRECT_URI`).
+2. Add an HTTPS Redirect URI (Spotify rejects plain `http://`). Use the site's
+   callback page, which must match `SPOTIFY_REDIRECT_URI`:
+   `https://chrisjamesseal.github.io/gigs-app/callback.html`
 3. Copy the Client ID (and Client Secret, if shown) into `.env`.
-4. Run `scripts/spotify_login.py` once to authorize the scopes
-   `user-follow-read` and `user-library-read` and mint a refresh token.
+4. Run `python scripts/spotify_login.py`. Approve access in the browser; you land
+   on the callback page showing a one-time code. Paste it back into the prompt.
+   The script mints a refresh token (scopes `user-follow-read`,
+   `user-library-read`).
 
 The refresh token is long-lived: store it in `.env` locally and, for cloud runs,
 as a GitHub Actions secret. You never repeat the login unless you revoke access.
+
+> The callback page is part of the published site, so it works fully once the
+> site is deployed. Before then the login still works: after approving, copy the
+> URL from your browser's address bar (it contains `code=...`) and paste that.
 
 ## Usage
 

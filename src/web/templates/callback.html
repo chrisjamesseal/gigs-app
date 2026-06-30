@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Spotify login - London Gig Radar</title>
+  <style>
+    :root { color-scheme: dark light; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; background: #0f0f12; color: #f0f0f2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .card {
+      max-width: 480px; padding: 28px; margin: 16px; background: #1a1a20;
+      border: 1px solid #2a2a32; border-radius: 14px;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    p { color: #9a9aa5; font-size: 0.95rem; line-height: 1.5; }
+    code {
+      display: block; word-break: break-all; background: #0f0f12; color: #a78bfa;
+      border: 1px solid #2a2a32; border-radius: 8px; padding: 12px; margin: 14px 0;
+      font-size: 0.85rem;
+    }
+    button {
+      background: #6f3cff; color: #fff; border: 0; border-radius: 999px;
+      padding: 10px 18px; font-weight: 600; cursor: pointer; font-size: 0.95rem;
+    }
+    .muted { font-size: 0.82rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎧 Spotify authorization code</h1>
+    <p id="intro">Reading your authorization code...</p>
+    <code id="code">...</code>
+    <button id="copy" type="button">Copy code</button>
+    <p class="muted">Paste this into the <code style="display:inline;border:0;padding:0;background:none;">spotify_login.py</code>
+      prompt in your terminal. You can close this tab afterwards.</p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+    const codeEl = document.getElementById("code");
+    const intro = document.getElementById("intro");
+    if (error) {
+      intro.textContent = "Authorization failed: " + error;
+      codeEl.style.display = "none";
+      document.getElementById("copy").style.display = "none";
+    } else if (code) {
+      codeEl.textContent = code;
+      intro.textContent = "Login succeeded. Here is your one-time code:";
+    } else {
+      intro.textContent = "No code found in this URL.";
+      codeEl.style.display = "none";
+      document.getElementById("copy").style.display = "none";
+    }
+    document.getElementById("copy").addEventListener("click", () => {
+      navigator.clipboard.writeText(code || "").then(() => {
+        document.getElementById("copy").textContent = "Copied";
+      });
+    });
+  </script>
+</body>
+</html>

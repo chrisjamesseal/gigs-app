@@ -86,7 +86,8 @@ def get_config() -> Config:
         spotify_client_secret=os.getenv("SPOTIFY_CLIENT_SECRET") or None,
         spotify_refresh_token=os.getenv("SPOTIFY_REFRESH_TOKEN") or None,
         spotify_redirect_uri=os.getenv(
-            "SPOTIFY_REDIRECT_URI", "http://127.0.0.1:8888/callback"
+            "SPOTIFY_REDIRECT_URI",
+            "https://chrisjamesseal.github.io/gigs-app/callback.html",
         ),
         ticketmaster_api_key=os.getenv("TICKETMASTER_API_KEY") or None,
         bandsintown_app_id=os.getenv("BANDSINTOWN_APP_ID") or None,
