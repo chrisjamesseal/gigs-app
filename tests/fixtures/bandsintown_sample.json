@@ -1,0 +1,46 @@
+[
+  {
+    "id": "1001",
+    "url": "https://www.bandsintown.com/e/1001",
+    "datetime": "2026-07-20T19:30:00",
+    "lineup": ["Floating Points"],
+    "venue": {
+      "name": "Village Underground",
+      "city": "London",
+      "country": "United Kingdom",
+      "latitude": "51.5266",
+      "longitude": "-0.0786"
+    },
+    "offers": [
+      { "type": "Tickets", "url": "https://tickets.example/1001", "status": "available" }
+    ]
+  },
+  {
+    "id": "1002",
+    "url": "https://www.bandsintown.com/e/1002",
+    "datetime": "2026-07-25T20:00:00",
+    "lineup": ["Floating Points"],
+    "venue": {
+      "name": "O2 Academy",
+      "city": "Manchester",
+      "country": "United Kingdom",
+      "latitude": "53.4808",
+      "longitude": "-2.2426"
+    },
+    "offers": []
+  },
+  {
+    "id": "1003",
+    "url": "https://www.bandsintown.com/e/1003",
+    "datetime": "2026-08-10T21:00:00",
+    "lineup": ["Floating Points"],
+    "venue": {
+      "name": "EartH",
+      "city": "Hackney",
+      "country": "United Kingdom",
+      "latitude": "51.5460",
+      "longitude": "-0.0760"
+    },
+    "offers": []
+  }
+]

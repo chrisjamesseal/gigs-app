@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "id": "dice-1",
+      "name": "Floating Points (Live)",
+      "date": "2026-07-20T19:30:00",
+      "permalink": "https://dice.fm/event/dice-1",
+      "price": 2200,
+      "summary_lineup": [{ "name": "Floating Points" }],
+      "venue": { "name": "Village Underground", "city": { "name": "London" } }
+    },
+    {
+      "id": "dice-2",
+      "name": "Bonobo Up North",
+      "date": "2026-07-25T20:00:00",
+      "permalink": "https://dice.fm/event/dice-2",
+      "venue": { "name": "Albert Hall", "city": { "name": "Manchester" } }
+    }
+  ]
+}

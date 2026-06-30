@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Connect Spotify - London Gig Radar</title>
+  <style>
+    :root { color-scheme: dark light; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; background: #0f0f12; color: #f0f0f2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .card {
+      max-width: 480px; padding: 28px; margin: 16px; background: #1a1a20;
+      border: 1px solid #2a2a32; border-radius: 14px;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 10px; }
+    p { color: #9a9aa5; font-size: 0.95rem; line-height: 1.5; }
+    label { display: block; font-size: 0.85rem; color: #9a9aa5; margin: 14px 0 6px; }
+    input {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid #2a2a32; background: #0f0f12; color: #f0f0f2;
+      font-size: 0.9rem;
+    }
+    button {
+      margin-top: 16px; background: #1db954; color: #fff; border: 0;
+      border-radius: 999px; padding: 11px 20px; font-weight: 600; cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button.secondary { background: #6f3cff; }
+    code {
+      display: block; word-break: break-all; background: #0f0f12; color: #a78bfa;
+      border: 1px solid #2a2a32; border-radius: 8px; padding: 12px; margin: 14px 0;
+      font-size: 0.8rem;
+    }
+    .muted { font-size: 0.82rem; }
+    .hidden { display: none; }
+    .err { color: #e06666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎧 Connect Spotify</h1>
+
+    <div id="start">
+      <p>This links your Spotify so the app can read the artists you follow and
+        the artists from your liked songs. It asks for read-only access; it cannot
+        change anything on your account.</p>
+      <label for="clientId">Spotify Client ID</label>
+      <input id="clientId" placeholder="from your Spotify app dashboard"
+             autocomplete="off" spellcheck="false">
+      <button id="connect" type="button">Connect Spotify</button>
+      <p class="muted">Find this at developer.spotify.com → your app → Settings.
+        It is remembered in this browser only.</p>
+    </div>
+
+    <div id="working" class="hidden"><p>Finishing sign-in...</p></div>
+
+    <div id="done" class="hidden">
+      <p>Connected. Here is your refresh token. Add it to your GitHub repo as the
+        secret <strong>SPOTIFY_REFRESH_TOKEN</strong>:</p>
+      <code id="token"></code>
+      <button id="copy" class="secondary" type="button">Copy token</button>
+      <p class="muted">Keep this private, like a password. You can close this tab
+        once it is saved.</p>
+    </div>
+
+    <div id="error" class="hidden"><p class="err" id="errmsg"></p></div>
+  </div>
+
+  <script>
+    const SCOPES = "user-follow-read user-library-read";
+    const TOKEN_URL = "https://accounts.spotify.com/api/token";
+    const AUTH_URL = "https://accounts.spotify.com/authorize";
+    // Exact redirect URI registered on the Spotify app = this page's own URL.
+    const REDIRECT_URI = location.origin + location.pathname;
+
+    const $ = (id) => document.getElementById(id);
+    const show = (id) => $(id).classList.remove("hidden");
+    const hide = (id) => $(id).classList.add("hidden");
+
+    function fail(msg) {
+      hide("start"); hide("working"); show("error");
+      $("errmsg").textContent = msg;
+    }
+
+    function b64url(bytes) {
+      let s = btoa(String.fromCharCode(...new Uint8Array(bytes)));
+      return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+    function randomVerifier() {
+      const a = new Uint8Array(64);
+      crypto.getRandomValues(a);
+      return b64url(a);
+    }
+    async function challengeFor(verifier) {
+      const digest = await crypto.subtle.digest("SHA-256",
+        new TextEncoder().encode(verifier));
+      return b64url(digest);
+    }
+
+    async function startLogin() {
+      const clientId = $("clientId").value.trim();
+      if (!clientId) { $("clientId").focus(); return; }
+      localStorage.setItem("gr_client_id", clientId);
+      const verifier = randomVerifier();
+      sessionStorage.setItem("gr_verifier", verifier);
+      const state = randomVerifier().slice(0, 24);
+      sessionStorage.setItem("gr_state", state);
+      const challenge = await challengeFor(verifier);
+      const q = new URLSearchParams({
+        client_id: clientId, response_type: "code", redirect_uri: REDIRECT_URI,
+        scope: SCOPES, code_challenge_method: "S256", code_challenge: challenge,
+        state: state,
+      });
+      location.href = AUTH_URL + "?" + q.toString();
+    }
+
+    async function completeLogin(code, returnedState) {
+      hide("start"); show("working");
+      const clientId = localStorage.getItem("gr_client_id");
+      const verifier = sessionStorage.getItem("gr_verifier");
+      const state = sessionStorage.getItem("gr_state");
+      if (!clientId || !verifier) {
+        return fail("Session expired. Go back to the page and start again.");
+      }
+      if (state && returnedState && state !== returnedState) {
+        return fail("State mismatch (possible CSRF). Start again.");
+      }
+      const body = new URLSearchParams({
+        grant_type: "authorization_code", code: code, redirect_uri: REDIRECT_URI,
+        client_id: clientId, code_verifier: verifier,
+      });
+      try {
+        const resp = await fetch(TOKEN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.refresh_token) {
+          return fail("Token exchange failed: " +
+            (data.error_description || data.error || resp.status));
+        }
+        hide("working"); show("done");
+        $("token").textContent = data.refresh_token;
+      } catch (e) {
+        fail("Network error during token exchange: " + e.message);
+      }
+    }
+
+    // Boot: complete the flow if we came back with a code, else show the form.
+    const params = new URLSearchParams(location.search);
+    if (params.get("error")) {
+      fail("Authorization failed: " + params.get("error"));
+    } else if (params.get("code")) {
+      completeLogin(params.get("code"), params.get("state"));
+    } else {
+      $("clientId").value = localStorage.getItem("gr_client_id") || "";
+      $("connect").addEventListener("click", startLogin);
+    }
+    $("copy").addEventListener("click", () => {
+      navigator.clipboard.writeText($("token").textContent).then(() => {
+        $("copy").textContent = "Copied";
+      });
+    });
+  </script>
+</body>
+</html>

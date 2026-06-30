@@ -1,0 +1,42 @@
+{
+  "error": 0,
+  "totalcount": 2,
+  "results": [
+    {
+      "id": "40123456",
+      "eventname": "Bonobo (DJ Set)",
+      "date": "2026-08-02",
+      "startdate": "2026-08-02T22:00:00",
+      "link": "https://www.skiddle.com/whats-on/London/event/40123456/",
+      "minPrice": "25.50",
+      "venue": {
+        "id": "1234",
+        "name": "Printworks",
+        "town": "London",
+        "latitude": "51.4980",
+        "longitude": "-0.0490"
+      }
+    },
+    {
+      "id": "40123457",
+      "eventname": "Floating Points Live",
+      "date": "2026-07-20",
+      "startdate": "2026-07-20T19:30:00",
+      "link": "https://www.skiddle.com/whats-on/London/event/40123457/",
+      "EntryPrice": "£18",
+      "venue": {
+        "id": "5678",
+        "name": "Village Underground",
+        "town": "London",
+        "latitude": "51.5266",
+        "longitude": "-0.0786"
+      }
+    },
+    {
+      "id": "40123458",
+      "eventname": "No Date Event",
+      "link": "https://www.skiddle.com/whats-on/London/event/40123458/",
+      "venue": { "name": "Somewhere", "town": "London" }
+    }
+  ]
+}
