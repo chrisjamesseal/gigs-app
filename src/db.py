@@ -248,6 +248,24 @@ def get_last_run(conn: sqlite3.Connection) -> dict | None:
     }
 
 
+def get_sent_keys(conn: sqlite3.Connection) -> set[str]:
+    """Return the set of dedup_keys already included in a sent digest."""
+    rows = conn.execute("SELECT dedup_key FROM sent_digests").fetchall()
+    return {r["dedup_key"] for r in rows}
+
+
+def mark_sent(conn: sqlite3.Connection, dedup_keys: set[str]) -> None:
+    """Record dedup_keys as emailed so future digests flag only new finds."""
+    now = datetime.now().astimezone().isoformat()
+    conn.executemany(
+        """
+        INSERT INTO sent_digests (dedup_key, sent_at) VALUES (?, ?)
+        ON CONFLICT(dedup_key) DO NOTHING
+        """,
+        [(k, now) for k in dedup_keys],
+    )
+
+
 def log_low_confidence(
     conn: sqlite3.Connection,
     *,

@@ -43,12 +43,15 @@ This is the primary deliverable.
 **✅ Milestone 5 — Skiddle:** third API source, covering live gigs and
 club/electronic nights (geo-constrained to ~15km of central London).
 
-**✅ Milestone 6 — RA + Dice scrapers (current):** isolated, kill-switched,
+**✅ Milestone 6 — RA + Dice scrapers:** isolated, kill-switched,
 defensively-parsed scrapers for Resident Advisor and Dice. These are *best-effort*
 and need a one-time live-query verification — see
 [REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md).
 
-The optional email digest is the only remaining later milestone.
+**✅ Milestone 7 — Email digest (current):** a weekly multipart (text + dark-mode
+HTML) email that leads with *new* finds, tucks already-seen gigs into "still
+upcoming", and **links to the web app** for the full list. Sends via Resend or
+SMTP; `--dry-run` previews without sending. All code milestones are now complete.
 
 ## Quick start
 
@@ -101,6 +104,17 @@ python -m src.main                      # refresh artists + sources, store, prin
 python -m src.main --no-refresh-artists # reuse the cached Spotify artist list
 ```
 
+### Email digest
+
+```bash
+python -m src.main --email --dry-run    # refresh, then render + log the email
+python -m src.main --email              # refresh, then send it (Resend or SMTP)
+```
+
+Set `RESEND_API_KEY` (preferred) or `SMTP_HOST`/`SMTP_USERNAME`/`SMTP_PASSWORD`
+(e.g. a Gmail app password), plus `EMAIL_TO` and `EMAIL_FROM`. The digest links to
+the published web app and only highlights gigs not in a previous email.
+
 ### Build the static site
 
 ```bash
@@ -135,14 +149,15 @@ src/
 ├── spotify_client.py  # Spotify OAuth + artist fetch
 ├── aggregator.py      # fan out across sources + cross-source dedup
 ├── pipeline.py        # shared refresh: fetch -> match -> dedup -> store
-├── emailer.py         # digest rendering/sending (later milestone)
+├── emailer.py         # weekly digest rendering + sending (Resend/SMTP)
 ├── sources/           # one isolated module per gig source
 └── web/               # FastAPI app + static-site renderer + templates
 scripts/
 ├── spotify_login.py   # one-time refresh-token minting (PKCE)
 └── build_site.py      # render the static site for GitHub Pages
 .github/workflows/
-└── pages.yml          # daily build + deploy to GitHub Pages
+├── pages.yml          # daily build + deploy to GitHub Pages
+└── email.yml          # weekly email digest (Sunday)
 tests/
 ```
 
@@ -182,5 +197,5 @@ is by design. To re-capture their request shapes, see
 4. **Web app** — mobile list, live Refresh, static GitHub Pages deploy. ← *done*
 5. **Skiddle** — third API source. ← *done*
 6. **RA + Dice scrapers** — isolated, with kill switches. ← *done*
-7. **Email digest (final)** — a short weekly nudge that **links to the web app**
-   for the full list; built last, once the web app is done.
+7. **Email digest** — a weekly nudge that **links to the web app** for the full
+   list, highlighting new finds. ← *done*

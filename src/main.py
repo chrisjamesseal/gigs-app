@@ -8,6 +8,8 @@ this is the headless way to populate the database (e.g. from cron).
 Flags:
     --refresh-artists / --no-refresh-artists
                 Force or skip the Spotify artist refresh (default: on).
+    --email     After refreshing, send the weekly email digest.
+    --dry-run   With --email, render and log the digest instead of sending it.
 """
 
 from __future__ import annotations
@@ -34,6 +36,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=True,
         help="Refresh the cached Spotify artist list (default: on).",
     )
+    parser.add_argument(
+        "--email",
+        action="store_true",
+        help="Send the weekly email digest after refreshing.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="With --email, render and log the digest instead of sending.",
+    )
     return parser.parse_args(argv)
 
 
@@ -46,6 +58,12 @@ def run(argv: list[str] | None = None) -> int:
     log.info("artists.summary", total=result.artists)
 
     _print_events(load_upcoming(config), result.failed_sources)
+
+    if args.email:
+        from . import emailer
+
+        subject = emailer.run_digest(config, dry_run=args.dry_run)
+        log.info("email.done", subject=subject, dry_run=args.dry_run)
     return 0
 
 

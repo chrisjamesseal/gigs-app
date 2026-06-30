@@ -1,0 +1,48 @@
+name: Weekly email digest
+
+# Sends the weekly digest (which links to the published web app). Runs Sunday
+# 09:00 Europe/London (08:00 UTC) and on demand. Requires the email secrets below
+# in addition to the Spotify + source keys.
+on:
+  schedule:
+    - cron: "0 8 * * SUN"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Render and log the digest without sending"
+        type: boolean
+        default: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      - name: Send digest
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
+          SKIDDLE_API_KEY: ${{ secrets.SKIDDLE_API_KEY }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          LOOKAHEAD_DAYS: "90"
+        run: |
+          python -m src.main --email ${{ inputs.dry_run && '--dry-run' || '' }}

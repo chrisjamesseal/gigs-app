@@ -51,6 +51,11 @@ class Config:
     email_to: str | None
     email_from: str | None
     resend_api_key: str | None
+    # SMTP fallback (e.g. Gmail app password) — used if no Resend key is set.
+    smtp_host: str | None
+    smtp_port: int
+    smtp_username: str | None
+    smtp_password: str | None
 
     # Behaviour
     lookahead_days: int
@@ -91,6 +96,10 @@ def get_config() -> Config:
         email_to=os.getenv("EMAIL_TO") or None,
         email_from=os.getenv("EMAIL_FROM") or None,
         resend_api_key=os.getenv("RESEND_API_KEY") or None,
+        smtp_host=os.getenv("SMTP_HOST") or None,
+        smtp_port=_as_int(os.getenv("SMTP_PORT"), 587),
+        smtp_username=os.getenv("SMTP_USERNAME") or None,
+        smtp_password=os.getenv("SMTP_PASSWORD") or None,
         lookahead_days=_as_int(os.getenv("LOOKAHEAD_DAYS"), 90),
         db_path=os.getenv("DB_PATH", "gig_radar.db"),
     )
