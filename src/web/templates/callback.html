@@ -54,6 +54,13 @@
       <button id="connect" type="button">Connect Spotify</button>
       <p class="muted">Find this at developer.spotify.com → your app → Settings.
         It is remembered in this browser only.</p>
+      <p class="muted">This exact Redirect URI must be saved on your Spotify app
+        (Settings → Redirect URIs):</p>
+      <code id="redirectUri"></code>
+      <p class="muted" id="originWarn" style="display:none;color:#e0b84d;">
+        Heads up: you are not on the published site. Open
+        <strong>https://chrisjamesseal.github.io/gigs-app/callback.html</strong>
+        and try there.</p>
     </div>
 
     <div id="working" class="hidden"><p>Finishing sign-in...</p></div>
@@ -159,6 +166,10 @@
       completeLogin(params.get("code"), params.get("state"));
     } else {
       $("clientId").value = localStorage.getItem("gr_client_id") || "";
+      $("redirectUri").textContent = REDIRECT_URI;
+      if (location.hostname !== "chrisjamesseal.github.io") {
+        $("originWarn").style.display = "block";
+      }
       $("connect").addEventListener("click", startLogin);
     }
     $("copy").addEventListener("click", () => {
