@@ -50,7 +50,7 @@ jobs:
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
           BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
           SKIDDLE_API_KEY: ${{ secrets.SKIDDLE_API_KEY }}
-          LOOKAHEAD_DAYS: "90"
+          LOOKAHEAD_DAYS: "180"
         run: python scripts/build_site.py --refresh --output docs
 
       - uses: actions/upload-pages-artifact@v3

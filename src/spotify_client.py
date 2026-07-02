@@ -206,18 +206,29 @@ def _dedup(artists: list[Artist]) -> list[Artist]:
 
 
 def fetch_artists(config: Config) -> list[Artist]:
-    """Fetch followed + liked-song artists, deduped to a single ``Artist`` list."""
+    """Fetch the user's Spotify artists, deduped to a single ``Artist`` list.
+
+    By default (``followed_only``) this returns only artists you follow. They come
+    from ``/me/following`` with their photos inline, so there's no random noise from
+    one-off liked tracks and no need for the (Development-mode-restricted) image
+    backfill. Set ``FOLLOWED_ONLY=false`` to also include liked-song artists.
+    """
     access_token = access_token_from_config(config)
     headers = {"Authorization": f"Bearer {access_token}"}
     with httpx.Client(headers=headers, timeout=_TIMEOUT) as client:
         followed = get_followed_artists(client)
-        liked = get_liked_song_artists(client)
-        merged = _dedup(followed + liked)
-        enrich_images(client, merged)
+        if config.followed_only:
+            merged = _dedup(followed)
+            liked = []
+        else:
+            liked = get_liked_song_artists(client)
+            merged = _dedup(followed + liked)
+            enrich_images(client, merged)  # liked artists arrive imageless
     log.info(
         "spotify.artists_fetched",
         followed=len(followed),
         liked=len(liked),
         deduped=len(merged),
+        followed_only=config.followed_only,
     )
     return merged
