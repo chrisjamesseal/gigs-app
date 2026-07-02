@@ -151,14 +151,23 @@ def enrich_images(client: httpx.Client, artists: list[Artist]) -> None:
 
     ``/me/tracks`` returns simplified artist objects without images, so liked-song
     artists arrive imageless; this backfills them in place.
+
+    Best-effort: photos are cosmetic, so any failure here (e.g. Spotify returns
+    403 for this catalog endpoint on Development-mode apps) is logged and skipped
+    rather than allowed to break the whole refresh. Followed artists already have
+    images from ``/me/following``; only liked-only artists lose their photo.
     """
     missing = [a for a in artists if not a.image_url and a.spotify_id]
     by_id = {a.spotify_id: a for a in missing}
     ids = list(by_id)
     for start in range(0, len(ids), 50):
         chunk = ids[start : start + 50]
-        resp = client.get(f"{API_BASE}/artists", params={"ids": ",".join(chunk)})
-        resp.raise_for_status()
+        try:
+            resp = client.get(f"{API_BASE}/artists", params={"ids": ",".join(chunk)})
+            resp.raise_for_status()
+        except Exception as exc:  # noqa: BLE001 - enrichment is non-essential
+            log.warning("spotify.enrich_images_skipped", error=str(exc))
+            return  # if one batch is rejected, the rest will be too
         for obj in resp.json().get("artists") or []:
             if obj and obj.get("id") in by_id:
                 by_id[obj["id"]].image_url = _pick_image(obj)
