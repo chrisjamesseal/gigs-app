@@ -35,6 +35,13 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e .
 
+      # Creates the Pages site via the API if it doesn't exist yet, so no manual
+      # Settings -> Pages step is needed.
+      - name: Enable GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Build site (refresh from Spotify + sources)
         env:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
