@@ -1,9 +1,10 @@
 # London Gig Radar
 
-A personal **web app** listing every upcoming London gig by artists you follow or
-have liked songs from on Spotify. A scheduled job pulls your Spotify artists,
-queries multiple gig sources, matches and dedups the results, and publishes a
-mobile-friendly page to **GitHub Pages** - refreshed automatically.
+A personal **web app** listing upcoming London gigs (next 6 months) by the artists
+you follow on Spotify. A scheduled job pulls your followed artists, queries multiple
+gig sources, matches and dedups the results, and publishes a mobile-friendly page to
+**GitHub Pages** - refreshed automatically. (Set `FOLLOWED_ONLY=false` to also
+include artists from your liked songs.)
 
 Single-user personal tool - no ticket buying, no multi-user support. (The web app
 replaced the originally-planned email digest; the email code remains in the repo

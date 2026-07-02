@@ -75,8 +75,8 @@
       <div>
         <h1>🎧 London Gig Radar</h1>
         <p class="sub">
-          {{ total }} upcoming gig{{ '' if total == 1 else 's' }} by artists you
-          follow or like.
+          {{ total }} gig{{ '' if total == 1 else 's' }} in the next 6 months by
+          artists you follow on Spotify.
           {% if last_run %}Updated {{ last_run.ran_at[:16].replace('T', ' ') }}.{% endif %}
         </p>
       </div>

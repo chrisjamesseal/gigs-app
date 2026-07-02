@@ -60,6 +60,8 @@ class Config:
     # Behaviour
     lookahead_days: int
     db_path: str
+    # Only consider artists you follow on Spotify (not liked-song artists).
+    followed_only: bool
 
     _present: frozenset[str] = field(default_factory=frozenset, repr=False)
 
@@ -101,6 +103,7 @@ def get_config() -> Config:
         smtp_port=_as_int(os.getenv("SMTP_PORT"), 587),
         smtp_username=os.getenv("SMTP_USERNAME") or None,
         smtp_password=os.getenv("SMTP_PASSWORD") or None,
-        lookahead_days=_as_int(os.getenv("LOOKAHEAD_DAYS"), 90),
+        lookahead_days=_as_int(os.getenv("LOOKAHEAD_DAYS"), 180),
         db_path=os.getenv("DB_PATH", "gig_radar.db"),
+        followed_only=_as_bool(os.getenv("FOLLOWED_ONLY"), True),
     )
