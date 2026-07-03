@@ -119,3 +119,40 @@ def test_dice_keeps_only_london():
 def test_dice_degrades_on_unexpected_shape():
     assert dice.parse_events({"weird": True}, "Bonobo") == []
     assert dice.parse_events({}, "Bonobo") == []
+
+
+def _load_html(name: str) -> str:
+    return (FIXTURES / name).read_text()
+
+
+def test_dice_html_next_data():
+    html = _load_html("dice_page.html")
+    events = dice.parse_html(html, "Bicep")
+    ids = {e.source_event_id for e in events}
+    assert "dice-html-1" in ids
+    assert "dice-html-2" in ids
+    assert "dice-html-3" not in ids  # Manchester excluded
+    bicep = next(e for e in events if e.source_event_id == "dice-html-1")
+    assert bicep.artist_name == "Bicep"
+    assert bicep.venue == "Printworks"
+    assert bicep.price_from == 35.0  # 3500 pence -> £35
+    assert bicep.url == "https://dice.fm/event/bicep-live"
+    four_tet = next(e for e in events if e.source_event_id == "dice-html-2")
+    assert four_tet.artist_name == "Four Tet"
+    assert four_tet.url == "https://dice.fm/event/four-tet-dj-set"
+
+
+def test_dice_html_jsonld_fallback():
+    html = _load_html("dice_jsonld.html")
+    events = dice.parse_html(html, "Ross From Friends")
+    assert len(events) == 1
+    e = events[0]
+    assert e.artist_name == "Ross From Friends"
+    assert e.venue == "Corsica Studios"
+    assert e.price_from == 18.50
+    assert e.url == "https://dice.fm/event/ross-from-friends"
+
+
+def test_dice_html_degrades_on_empty():
+    assert dice.parse_html("<html><body></body></html>", "Bonobo") == []
+    assert dice.parse_html("", "Bonobo") == []
