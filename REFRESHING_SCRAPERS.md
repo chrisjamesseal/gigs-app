@@ -31,14 +31,17 @@ The London RA area id is currently `13`; verify it hasn't changed.
 
 ## Dice (`src/sources/dice.py`)
 
-1. Open <https://dice.fm/> and search for an artist / browse London.
-2. DevTools → **Network** → filter to `api.dice.fm`.
-3. Find the events/search request; copy its URL, query params, and any required
-   headers into `SEARCH_URL` / `fetch_events()`.
-4. Align `parse_events()` with the response shape (it reads `data[]` or `events[]`
-   and each event's `{id, date, venue.name, venue.city, summary_lineup[].name,
-   permalink, price}`).
-5. Update `tests/fixtures/dice_sample.json` and run `pytest tests/test_sources.py`.
+The Dice scraper fetches their website HTML (search pages) and parses embedded
+JSON data (`__NEXT_DATA__` or JSON-LD structured data) rather than calling a
+private REST API. This is more resilient to API versioning changes.
+
+1. Open <https://dice.fm/search?query=bicep&type=events> in a browser.
+2. View Page Source and search for `__NEXT_DATA__` or `application/ld+json`.
+3. Check the JSON structure matches what `parse_html()` expects: events with
+   `{id, date/startDate, venue.name, venue.city, summary_lineup[].name,
+   permalink/url, price}`.
+4. If the data shape changed, update `_parse_next_data()` or `_parse_jsonld()`.
+5. Update `tests/fixtures/dice_page.html` and run `pytest tests/test_sources.py`.
 
 ## Why parsing is defensive
 
