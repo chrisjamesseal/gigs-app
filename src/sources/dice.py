@@ -1,5 +1,11 @@
 """Dice source (scraper - FRAGILE, best-effort).
 
+⚠️  DISABLED BY DEFAULT (``DICE_ENABLED=false``). dice.fm blocks datacenter IPs:
+every request from GitHub Actions comes back ``403 Forbidden``, so this returns
+nothing and only slows the build. Resident Advisor covers the same electronic/club
+scene. The scraper is kept here in case Dice's blocking eases or the job runs from
+a residential IP; flip ``DICE_ENABLED=true`` to try it.
+
 Dice has no public API. This scrapes event data from the dice.fm website by
 fetching artist search pages and parsing the embedded JSON (Next.js
 ``__NEXT_DATA__`` or JSON-LD structured data).

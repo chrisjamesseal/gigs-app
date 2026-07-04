@@ -95,7 +95,10 @@ def get_config() -> Config:
         bandsintown_app_id=os.getenv("BANDSINTOWN_APP_ID") or None,
         skiddle_api_key=os.getenv("SKIDDLE_API_KEY") or None,
         ra_enabled=_as_bool(os.getenv("RA_ENABLED"), True),
-        dice_enabled=_as_bool(os.getenv("DICE_ENABLED"), True),
+        # Off by default: dice.fm blocks datacenter IPs (403 on every request from
+        # GitHub Actions), so it returns nothing and just slows the build. Resident
+        # Advisor covers the same scene. Set DICE_ENABLED=true to force it on.
+        dice_enabled=_as_bool(os.getenv("DICE_ENABLED"), False),
         email_to=os.getenv("EMAIL_TO") or None,
         email_from=os.getenv("EMAIL_FROM") or None,
         resend_api_key=os.getenv("RESEND_API_KEY") or None,

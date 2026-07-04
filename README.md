@@ -47,7 +47,9 @@ club/electronic nights (geo-constrained to ~15km of central London).
 **✅ Milestone 6 - RA + Dice scrapers:** isolated, kill-switched,
 defensively-parsed scrapers for Resident Advisor and Dice. These are *best-effort*
 and need a one-time live-query verification - see
-[REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md).
+[REFRESHING_SCRAPERS.md](REFRESHING_SCRAPERS.md). **Dice is disabled by default**
+(`DICE_ENABLED=false`): dice.fm blocks datacenter IPs, so it returns `403` from
+GitHub Actions. Resident Advisor covers the same electronic/club scene.
 
 **✅ Milestone 7 - Email digest (current):** a weekly multipart (text + dark-mode
 HTML) email that leads with *new* finds, tucks already-seen gigs into "still
