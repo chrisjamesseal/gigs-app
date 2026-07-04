@@ -18,3 +18,14 @@ def test_followed_only_can_be_disabled(monkeypatch):
     get_config.cache_clear()
     assert get_config().followed_only is False
     get_config.cache_clear()
+
+
+def test_dice_disabled_by_default(monkeypatch):
+    # dice.fm blocks datacenter IPs, so it's off unless explicitly forced on.
+    monkeypatch.delenv("DICE_ENABLED", raising=False)
+    get_config.cache_clear()
+    assert get_config().dice_enabled is False
+    monkeypatch.setenv("DICE_ENABLED", "true")
+    get_config.cache_clear()
+    assert get_config().dice_enabled is True
+    get_config.cache_clear()
