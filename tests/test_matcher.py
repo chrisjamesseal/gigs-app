@@ -36,6 +36,19 @@ def test_combined():
     assert normalize_name("The Chemical Brothers!") == "chemical brothers"
 
 
+def test_preserves_plus_as_distinct_identity():
+    # "Omar+" must not collapse to "omar" - they are different artists.
+    assert normalize_name("Omar+") == "omar+"
+    assert normalize_name("Omar") == "omar"
+
+
+def test_plus_artist_does_not_match_plain_name():
+    # Following "Omar+" should not pull in an event for "Omar".
+    index = build_artist_index([Artist("9", "Omar+", normalize_name("Omar+"), "followed")])
+    name, score = match_artist("Omar", index)
+    assert name is None
+
+
 # --- matching ---------------------------------------------------------------
 
 ARTISTS = [

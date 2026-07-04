@@ -303,6 +303,7 @@ def fetch_events(artist_names: list[str], location: str = "London") -> list[Even
         "Accept-Language": "en-GB,en;q=0.9",
     }
     events: list[Event] = []
+    diagnosed = False
     with httpx.Client(
         timeout=httpx.Timeout(30.0), headers=headers, follow_redirects=True
     ) as client:
@@ -312,10 +313,26 @@ def fetch_events(artist_names: list[str], location: str = "London") -> list[Even
                     SEARCH_URL, params={"query": artist, "type": "events"}
                 )
                 resp.raise_for_status()
-                batch = parse_html(resp.text, artist)
+                body = resp.text
+                if not diagnosed:
+                    # One-time visibility into what the runner actually receives, so
+                    # a zero-result Dice run can be diagnosed from the CI logs without
+                    # needing to reproduce the (egress-restricted) request locally.
+                    log.info(
+                        "dice.first_response",
+                        artist=artist,
+                        status=resp.status_code,
+                        length=len(body),
+                        has_next_data="__NEXT_DATA__" in body,
+                        has_jsonld="application/ld+json" in body,
+                        final_url=str(resp.url),
+                    )
+                    diagnosed = True
+                batch = parse_html(body, artist)
                 events.extend(batch)
                 log.debug("dice.artist_done", artist=artist, events=len(batch))
             except Exception as exc:  # noqa: BLE001
                 log.warning("dice.artist_failed", artist=artist, error=str(exc))
             time.sleep(REQUEST_DELAY_S)
+    log.info("dice.done", artists=len(artist_names), events=len(events))
     return events
