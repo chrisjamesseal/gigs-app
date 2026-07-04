@@ -52,6 +52,13 @@
     .meta { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;
             align-items: center; }
     .price { font-size: 0.85rem; color: var(--fg); }
+    .dates-head { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .occ { display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+           padding: 8px 0; border-top: 1px solid var(--border); }
+    .occ:first-of-type { border-top: 0; padding-top: 6px; }
+    .occ-when { color: var(--accent); font-size: 0.85rem; font-weight: 600;
+                min-width: 120px; }
+    .occ-price { font-size: 0.82rem; color: var(--muted); }
     .link {
       font-size: 0.82rem; text-decoration: none; color: var(--accent);
       border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px 3px 6px;
@@ -109,27 +116,42 @@
     {% endif %}
 
     {% if groups %}
-      {% for month, events in groups %}
+      {% for month, cards in groups %}
         <div class="month">{{ month }}</div>
-        {% for e in events %}
+        {% for c in cards %}
           <div class="event">
             <div class="body">
-              <div class="artist">{{ e.artist_name | titlecase }}</div>
-              <div class="when">{{ e.date.strftime('%a %d %b, %H:%M') }}</div>
-              <div class="venue">{{ (e.venue | titlecase) or 'Venue TBA' }}{% if e.city and (e.city | lower) != 'london' %}, {{ e.city | titlecase }}{% endif %}</div>
-              <div class="meta">
-                {% if e.price_from %}<span class="price">from £{{ '%.0f'|format(e.price_from) }}</span>{% endif %}
-                {% set links = e.links if e.links else {e.source: e.url} %}
-                {% for source, url in links.items() %}
-                  <a class="link" href="{{ url }}" target="_blank" rel="noopener">
-                    {% if source_icon(source) %}<img src="{{ source_icon(source) }}" alt="">{% endif %}{{ source_label(source) }}</a>
+              <div class="artist">{{ c.artist_name | titlecase }}</div>
+              {% if c.multi %}
+                <div class="venue">{{ (c.venue | titlecase) or 'Venue TBA' }}{% if c.city and (c.city | lower) != 'london' %}, {{ c.city | titlecase }}{% endif %}</div>
+                <div class="dates-head">{{ c.occurrences | length }} dates</div>
+                {% for occ in c.occurrences %}
+                  <div class="occ">
+                    <span class="occ-when">{{ occ.date.strftime('%a %d %b, %H:%M') }}</span>
+                    {% if occ.price_from %}<span class="occ-price">from £{{ '%.0f'|format(occ.price_from) }}</span>{% endif %}
+                    {% for source, url in occ.links.items() %}
+                      <a class="link" href="{{ url }}" target="_blank" rel="noopener">
+                        {% if source_icon(source) %}<img src="{{ source_icon(source) }}" alt="">{% endif %}{{ source_label(source) }}</a>
+                    {% endfor %}
+                  </div>
                 {% endfor %}
-              </div>
+              {% else %}
+                {% set occ = c.occurrences[0] %}
+                <div class="when">{{ occ.date.strftime('%a %d %b, %H:%M') }}</div>
+                <div class="venue">{{ (c.venue | titlecase) or 'Venue TBA' }}{% if c.city and (c.city | lower) != 'london' %}, {{ c.city | titlecase }}{% endif %}</div>
+                <div class="meta">
+                  {% if occ.price_from %}<span class="price">from £{{ '%.0f'|format(occ.price_from) }}</span>{% endif %}
+                  {% for source, url in occ.links.items() %}
+                    <a class="link" href="{{ url }}" target="_blank" rel="noopener">
+                      {% if source_icon(source) %}<img src="{{ source_icon(source) }}" alt="">{% endif %}{{ source_label(source) }}</a>
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
-            {% if e.image_url %}
-              <img class="photo" src="{{ e.image_url }}" alt="" loading="lazy">
+            {% if c.image_url %}
+              <img class="photo" src="{{ c.image_url }}" alt="" loading="lazy">
             {% else %}
-              <div class="photo photo-fallback">{{ (e.artist_name or '?')[0] | upper }}</div>
+              <div class="photo photo-fallback">{{ (c.artist_name or '?')[0] | upper }}</div>
             {% endif %}
           </div>
         {% endfor %}

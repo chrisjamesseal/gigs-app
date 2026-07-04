@@ -23,7 +23,9 @@ from .models import Artist, Event
 log = structlog.get_logger(__name__)
 
 _LEADING_THE = re.compile(r"^the\s+")
-_PUNCT = re.compile(r"[^\w\s]", flags=re.UNICODE)
+# Strip punctuation, but keep "+" - it's identity-bearing for artists like
+# "Omar+" (a different act from "Omar"), and dropping it caused false matches.
+_PUNCT = re.compile(r"[^\w\s+]", flags=re.UNICODE)
 _WS = re.compile(r"\s+")
 
 # A fuzzy ratio at/above this is a probable match; below FUZZY_FLOOR isn't even
@@ -35,8 +37,9 @@ FUZZY_FLOOR = 80
 def normalize_name(name: str) -> str:
     """Normalize an artist name for comparison.
 
-    Lowercase, strip diacritics, drop a leading "the ", remove punctuation, and
-    collapse whitespace. ``"The Blødüd Brønç!"`` -> ``"blodud bronc"``.
+    Lowercase, strip diacritics, drop a leading "the ", remove punctuation (except
+    "+", which distinguishes acts like "Omar+" from "Omar"), and collapse
+    whitespace. ``"The Blødüd Brønç!"`` -> ``"blodud bronc"``.
     """
     # Decompose accents and drop combining marks.
     decomposed = unicodedata.normalize("NFKD", name)
